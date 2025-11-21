@@ -1,0 +1,7 @@
+# Ignore backend directory (Deployed on Railway/VPS)
+backend
+
+# Ignore api directory (Prevents Vercel from creating serverless functions)
+api
+
+# Ignore deployment guides and docs
