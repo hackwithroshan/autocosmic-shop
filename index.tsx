@@ -1,3 +1,4 @@
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -11,9 +12,8 @@ const originalFetch = window.fetch.bind(window);
 const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     let resource = input;
     
-    // Get the API URL from environment variables
-    // Cast import.meta to any to avoid TS error property 'env' does not exist on type 'ImportMeta'
-    const env = (import.meta as any).env; 
+    // Get the API URL from environment variables safely
+    const env = (import.meta as any).env || {}; 
     let apiUrl = env.VITE_API_URL;
 
     // --- CRITICAL FIX: Sanitize API URL ---
@@ -40,7 +40,10 @@ const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
             resource = `${apiUrl}${resource}`;
             // console.log(`[API Proxy] Redirecting to: ${resource}`);
         } else {
-             console.warn('[API Proxy] VITE_API_URL is missing! Requesting relative path:', resource);
+             // Only warn if we are in production (not localhost)
+             if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                console.warn('[API Proxy] VITE_API_URL is missing! Requests will fail on Vercel. Please add it in Vercel Settings.');
+             }
         }
     }
 

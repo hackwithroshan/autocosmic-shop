@@ -20,13 +20,15 @@ const PORT = process.env.PORT || 5001;
 // Middleware
 
 // --- CORS Configuration ---
-// We explicitly define options to allow preflight (OPTIONS) requests to work correctly
+// FIXED: When using origin: '*', credentials must be false.
+// Since we use Bearer Tokens (Headers) and not Cookies, credentials: false is the correct setting.
 const corsOptions = {
-    origin: '*', // For production security, replace '*' with your specific Vercel Frontend URL
+    origin: '*', 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: ['Content-Type', 'Authorization'],
     preflightContinue: false,
     optionsSuccessStatus: 204,
-    credentials: true
+    credentials: false // Must be false if origin is '*'
 };
 
 app.use(cors(corsOptions));
