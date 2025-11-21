@@ -30,7 +30,14 @@ const RegisterPage: React.FC<RegisterProps> = ({ setToken, setUser }) => {
         body: JSON.stringify({ name, email, password }),
       });
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(`Server error: ${response.status}. Response: ${text.substring(0, 50)}...`);
+      }
 
       if (!response.ok) {
         throw new Error(data.message || 'Failed to register');
@@ -41,8 +48,8 @@ const RegisterPage: React.FC<RegisterProps> = ({ setToken, setUser }) => {
       navigate('/');
 
     } catch (err: any) {
-       if (err.message === 'Failed to fetch') {
-        setError('Cannot connect to the server. Please try again later.');
+       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        setError('Network Error: Could not connect to server. 1) Check if Backend is running. 2) Did you REDEPLOY Vercel after adding the API Key?');
       } else {
         setError(err.message);
       }
@@ -102,7 +109,11 @@ const RegisterPage: React.FC<RegisterProps> = ({ setToken, setUser }) => {
               className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+             <div className="p-3 rounded-md bg-red-50 border border-red-200">
+                <p className="text-sm text-red-600">{error}</p>
+             </div>
+          )}
           <div>
             <button
               type="submit"

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
@@ -13,23 +12,46 @@ const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
     let resource = input;
     
     // Get the API URL from environment variables
-    const env = (import.meta as any).env;
-    const apiUrl = env.VITE_API_URL;
+    // Cast import.meta to any to avoid TS error property 'env' does not exist on type 'ImportMeta'
+    const env = (import.meta as any).env; 
+    let apiUrl = env.VITE_API_URL;
 
-    // If resource is a string, starts with /api, and we have a base URL, prepend it
-    if (apiUrl && typeof resource === 'string' && resource.startsWith('/api')) {
-        const cleanApiUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
-        resource = `${cleanApiUrl}${resource}`;
+    // --- CRITICAL FIX: Sanitize API URL ---
+    // Users often accidentally paste quotes '"https://..."' or spaces in Vercel.
+    // This block cleans it up automatically to prevent "Cannot connect" errors.
+    if (apiUrl) {
+        // Remove leading/trailing whitespace
+        apiUrl = apiUrl.trim();
+        
+        // Remove wrapping quotes (single or double) if present
+        if ((apiUrl.startsWith('"') && apiUrl.endsWith('"')) || (apiUrl.startsWith("'") && apiUrl.endsWith("'"))) {
+            apiUrl = apiUrl.substring(1, apiUrl.length - 1);
+        }
+
+        // Remove trailing slash if present
+        if (apiUrl.endsWith('/')) {
+            apiUrl = apiUrl.slice(0, -1);
+        }
+    }
+
+    // Logic: If the request is relative (starts with /api), prepend the Backend URL
+    if (typeof resource === 'string' && resource.startsWith('/api')) {
+        if (apiUrl) {
+            resource = `${apiUrl}${resource}`;
+            // console.log(`[API Proxy] Redirecting to: ${resource}`);
+        } else {
+             console.warn('[API Proxy] VITE_API_URL is missing! Requesting relative path:', resource);
+        }
     }
 
     return originalFetch(resource, init);
 };
 
 // Apply the interceptor safely
-// Handles cases where window.fetch is read-only (e.g. Safari, some preview envs)
 try {
     window.fetch = interceptedFetch;
 } catch (e) {
+    // Fallback for environments where window.fetch is read-only
     try {
         Object.defineProperty(window, 'fetch', {
             value: interceptedFetch,

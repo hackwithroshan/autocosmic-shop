@@ -18,14 +18,30 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
-// Allow CORS for all origins (Vercel frontend compatibility)
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+
+// --- CORS Configuration ---
+// We explicitly define options to allow preflight (OPTIONS) requests to work correctly
+const corsOptions = {
+    origin: '*', // For production security, replace '*' with your specific Vercel Frontend URL
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    credentials: true
+};
+
+app.use(cors(corsOptions));
+
+// Explicitly handle OPTIONS for preflight checks
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
+
+// --- Request Logger ---
+// This helps us see in Railway logs if the request is even reaching the server
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] INCOMING REQUEST: ${req.method} ${req.url}`);
+  next();
+});
 
 // --- MongoDB Connection ---
 // Support MONGO_URI (Standard) or DATABASE_URL (Railway default)

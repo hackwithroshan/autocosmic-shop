@@ -21,6 +21,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
     setLoading(true);
 
     try {
+      console.log("Attempting login...");
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -34,12 +35,15 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
-        // Fallback if server sends plain text error
         const text = await response.text();
-        throw new Error(text || `Server error: ${response.status}`);
+        console.error("Non-JSON response:", text);
+        throw new Error(`Server error (${response.status}). Please check backend logs.`);
       }
 
       if (!response.ok) {
+        if (response.status === 404 || response.status === 405) {
+             throw new Error("Backend connection failed (404/405). Please REDEPLOY Vercel to update environment variables.");
+        }
         throw new Error(data.message || 'Failed to login');
       }
       
@@ -53,9 +57,9 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       }
 
     } catch (err: any) {
-      console.error("Login error:", err);
-      if (err.message === 'Failed to fetch') {
-        setError('Cannot connect to the server. Please try again later.');
+      console.error("Login error details:", err);
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+        setError('Network Error: Could not connect to server. 1) Check if Backend is running on Railway. 2) Did you REDEPLOY Vercel after adding the API Key?');
       } else {
         setError(err.message);
       }
@@ -103,7 +107,11 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
               className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-orange-500 focus:border-orange-500"
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <div className="p-3 rounded-md bg-red-50 border border-red-200">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
           <div>
             <button
               type="submit"
