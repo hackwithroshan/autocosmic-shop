@@ -41,7 +41,7 @@ app.use(express.json());
 // --- Request Logger ---
 // This helps us see in Railway logs if the request is even reaching the server
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] INCOMING REQUEST: ${req.method} ${req.url}`);
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 });
 
@@ -79,7 +79,12 @@ connectDB();
 
 // --- API Routes ---
 app.get('/', (req, res) => {
-  res.send('AutoCosmic Backend Server is Running');
+  res.send('AutoCosmic Backend Server is Running. Access API at /api');
+});
+
+// Health Check Route (Useful for debugging)
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Backend is reachable' });
 });
 
 app.get('/api', (req, res) => {

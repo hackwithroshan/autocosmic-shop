@@ -13,36 +13,36 @@ const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
     let resource = input;
     
     // Get the API URL from environment variables safely
+    // In Vite, import.meta.env is the standard way to access env vars
     const env = (import.meta as any).env || {}; 
     let apiUrl = env.VITE_API_URL;
 
     // --- CRITICAL FIX: Sanitize API URL ---
-    // Users often accidentally paste quotes '"https://..."' or spaces in Vercel.
-    // This block cleans it up automatically to prevent "Cannot connect" errors.
-    if (apiUrl) {
-        // Remove leading/trailing whitespace
-        apiUrl = apiUrl.trim();
-        
-        // Remove wrapping quotes (single or double) if present
-        if ((apiUrl.startsWith('"') && apiUrl.endsWith('"')) || (apiUrl.startsWith("'") && apiUrl.endsWith("'"))) {
-            apiUrl = apiUrl.substring(1, apiUrl.length - 1);
-        }
-
-        // Remove trailing slash if present
-        if (apiUrl.endsWith('/')) {
-            apiUrl = apiUrl.slice(0, -1);
-        }
-    }
-
-    // Logic: If the request is relative (starts with /api), prepend the Backend URL
     if (typeof resource === 'string' && resource.startsWith('/api')) {
         if (apiUrl) {
+            // 1. Remove whitespace
+            apiUrl = apiUrl.trim();
+            
+            // 2. Remove accidental quotes (common Vercel copy-paste error)
+            if ((apiUrl.startsWith('"') && apiUrl.endsWith('"')) || (apiUrl.startsWith("'") && apiUrl.endsWith("'"))) {
+                apiUrl = apiUrl.substring(1, apiUrl.length - 1);
+            }
+
+            // 3. Remove trailing slash to prevent double slashes (e.g., .app//api)
+            if (apiUrl.endsWith('/')) {
+                apiUrl = apiUrl.slice(0, -1);
+            }
+
+            // 4. Construct the full URL
             resource = `${apiUrl}${resource}`;
-            // console.log(`[API Proxy] Redirecting to: ${resource}`);
+            
+            // 5. LOGGING (Crucial for debugging Network Errors)
+            console.log(`[API Proxy] Requesting: ${resource}`);
         } else {
              // Only warn if we are in production (not localhost)
              if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                console.warn('[API Proxy] VITE_API_URL is missing! Requests will fail on Vercel. Please add it in Vercel Settings.');
+                console.error('[API Proxy] ❌ VITE_API_URL is MISSING in Vercel Environment Variables!');
+                console.warn('Request will likely fail. Please add VITE_API_URL to Vercel Settings.');
              }
         }
     }
@@ -54,16 +54,7 @@ const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
 try {
     window.fetch = interceptedFetch;
 } catch (e) {
-    // Fallback for environments where window.fetch is read-only
-    try {
-        Object.defineProperty(window, 'fetch', {
-            value: interceptedFetch,
-            writable: true,
-            configurable: true
-        });
-    } catch (err) {
-        console.warn('Failed to intercept window.fetch', err);
-    }
+    console.warn('Failed to intercept window.fetch', e);
 }
 
 const rootElement = document.getElementById('root');

@@ -59,7 +59,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
     } catch (err: any) {
       console.error("Login error details:", err);
       if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-        setError('Network Error: Could not connect to server. 1) Check if Backend is running on Railway. 2) Did you REDEPLOY Vercel after adding the API Key?');
+        setError('Network Error: Open Browser Console (F12) -> Console tab. Look for lines starting with [API Proxy]. If VITE_API_URL is missing or wrong, it will fail.');
       } else {
         setError(err.message);
       }
