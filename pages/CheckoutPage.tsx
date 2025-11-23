@@ -19,6 +19,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
     firstName: user?.name?.split(' ')[0] || '',
     lastName: user?.name?.split(' ')[1] || '',
     email: user?.email || '',
+    phone: '',
     address: '',
     city: '',
     postalCode: '',
@@ -38,6 +39,13 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
       userId: user?.id,
       customerName: `${formData.firstName} ${formData.lastName}`,
       customerEmail: formData.email,
+      customerPhone: formData.phone,
+      shippingAddress: {
+          address: formData.address,
+          city: formData.city,
+          postalCode: formData.postalCode,
+          country: formData.country
+      },
       items: cart,
       total: cartTotal,
     };
@@ -104,9 +112,15 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
                   <input type="text" name="lastName" required value={formData.lastName} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                <input type="email" name="email" required value={formData.email} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+              <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                    <input type="email" name="email" required value={formData.email} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                    <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" placeholder="+91..." />
+                  </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Address</label>
@@ -139,13 +153,13 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
                     <span className="text-gray-600 font-medium">{item.quantity}x</span>
                     <span className="ml-2 text-gray-900">{item.name}</span>
                   </div>
-                  <span className="text-gray-900">${(item.price * item.quantity).toFixed(2)}</span>
+                  <span className="text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</span>
                 </li>
               ))}
             </ul>
             <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
               <span className="text-lg font-bold text-gray-900">Total</span>
-              <span className="text-2xl font-bold text-gray-900">${cartTotal.toFixed(2)}</span>
+              <span className="text-2xl font-bold text-gray-900">₹{cartTotal.toFixed(2)}</span>
             </div>
             
             <div className="mt-6">

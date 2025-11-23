@@ -36,7 +36,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onProductClick }) =>
         </h3>
         <p className="mt-1 text-sm text-gray-500">{product.category}</p>
         <div className="flex justify-between items-center mt-4">
-          <p className="text-lg font-semibold text-gray-900">${product.price.toFixed(2)}</p>
+          <p className="text-lg font-semibold text-gray-900">₹{product.price.toFixed(2)}</p>
           <button 
             onClick={handleAddToCart}
             className="px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm transition-colors duration-200 opacity-0" 

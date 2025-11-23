@@ -129,7 +129,7 @@ const Dashboard: React.FC<{token: string | null}> = ({token}) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Revenue" value={`$${totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} icon={Icons.orders} color={COLORS.accent} />
+        <StatCard title="Total Revenue" value={`₹${totalRevenue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`} icon={Icons.orders} color={COLORS.accent} />
         <StatCard title="Pending Orders" value={pendingOrders} icon={Icons.orders} color="#3B82F6" subtext="Needs attention" />
         <StatCard title="Total Products" value={products.length} icon={Icons.products} color="#10B981" />
         <StatCard title="New Customers" value={newCustomers} icon={Icons.users} color="#8B5CF6" subtext="Last 7 days" />
@@ -221,7 +221,7 @@ const Dashboard: React.FC<{token: string | null}> = ({token}) => {
                         <tr key={order.id}>
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">#{order.id.substring(0,6)}</td>
                             <td className="px-4 py-3 text-sm text-gray-500">{order.customerName}</td>
-                            <td className="px-4 py-3 text-sm text-gray-500">${order.total.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-sm text-gray-500">₹{order.total.toFixed(2)}</td>
                             <td className="px-4 py-3">
                                 <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                                     order.status === 'Delivered' ? 'bg-green-100 text-green-800' :

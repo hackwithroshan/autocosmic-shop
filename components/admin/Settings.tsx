@@ -119,7 +119,7 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
                                 <div>
                                     <h4 className="font-medium">Standard Shipping</h4>
                                 </div>
-                                <span className="font-bold">$15.00</span>
+                                <span className="font-bold">₹15.00</span>
                             </div>
                             <button className="text-sm text-blue-600 font-medium">+ Add Shipping Zone</button>
                         </div>

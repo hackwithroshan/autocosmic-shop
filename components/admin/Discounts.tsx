@@ -105,7 +105,7 @@ const Discounts: React.FC<{token: string | null}> = ({token}) => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{discount.type}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {discount.type === 'Percentage' ? `${discount.value}%` : discount.type === 'Flat' ? `$${discount.value}` : '-'}
+                                        {discount.type === 'Percentage' ? `${discount.value}%` : discount.type === 'Flat' ? `₹${discount.value}` : '-'}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {discount.usageCount} / {discount.maxUsage}

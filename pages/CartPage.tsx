@@ -43,7 +43,7 @@ const CartPage: React.FC<CartPageProps> = ({ user, logout }) => {
                                     <div className="ml-6 flex-1">
                                         <div className="flex justify-between">
                                             <h3 className="text-lg font-medium text-gray-900">{item.name}</h3>
-                                            <p className="text-lg font-bold text-gray-900">${(item.price * item.quantity).toFixed(2)}</p>
+                                            <p className="text-lg font-bold text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</p>
                                         </div>
                                         <p className="text-sm text-gray-500 mt-1">{item.category}</p>
                                         <div className="flex justify-between items-center mt-4">
@@ -77,7 +77,7 @@ const CartPage: React.FC<CartPageProps> = ({ user, logout }) => {
                         <h2 className="text-lg font-medium text-gray-900 mb-4">Order Summary</h2>
                         <div className="flex justify-between mb-2">
                             <span className="text-gray-600">Subtotal</span>
-                            <span className="font-medium text-gray-900">${cartTotal.toFixed(2)}</span>
+                            <span className="font-medium text-gray-900">₹{cartTotal.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between mb-2">
                             <span className="text-gray-600">Shipping</span>
@@ -85,7 +85,7 @@ const CartPage: React.FC<CartPageProps> = ({ user, logout }) => {
                         </div>
                         <div className="border-t border-gray-200 my-4 pt-4 flex justify-between">
                             <span className="text-xl font-bold text-gray-900">Total</span>
-                            <span className="text-xl font-bold text-gray-900">${cartTotal.toFixed(2)}</span>
+                            <span className="text-xl font-bold text-gray-900">₹{cartTotal.toFixed(2)}</span>
                         </div>
                         <button 
                             onClick={() => navigate('/checkout')}

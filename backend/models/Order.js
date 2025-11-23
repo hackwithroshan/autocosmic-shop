@@ -1,3 +1,4 @@
+
 const mongoose = require('mongoose');
 
 const OrderItemSchema = new mongoose.Schema({
@@ -6,14 +7,25 @@ const OrderItemSchema = new mongoose.Schema({
 });
 
 const OrderSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Optional
   customerName: { type: String, required: true },
   customerEmail: { type: String, required: true },
+  customerPhone: { type: String },
+  shippingAddress: {
+    address: { type: String },
+    city: { type: String },
+    postalCode: { type: String },
+    country: { type: String },
+  },
+  trackingInfo: {
+    carrier: { type: String },
+    trackingNumber: { type: String },
+  },
   date: { type: Date, default: Date.now },
   total: { type: Number, required: true },
   status: {
     type: String,
-    enum: ['Pending', 'Shipped', 'Delivered', 'Cancelled'],
+    enum: ['Pending', 'Processing', 'Packed', 'Shipped', 'Delivered', 'Returned', 'Cancelled'],
     default: 'Pending',
   },
   items: [OrderItemSchema],

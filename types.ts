@@ -7,19 +7,73 @@ export interface Category {
 
 export interface Product {
   id: string;
+  // Basic
   name: string;
-  category: string;
-  price: number;
-  stock: number;
-  imageUrl: string;
+  slug?: string;
   description: string;
+  shortDescription?: string;
+  brand?: string;
+  sku?: string;
+  barcode?: string;
+  
+  // Organization
+  category: string;
+  subCategory?: string;
+  tags?: string[];
+  status: 'Active' | 'Draft' | 'Archived';
+  
+  // Pricing
+  price: number; // Selling Price
+  mrp?: number; // Market Retail Price
+  costPrice?: number; // For profit calculation
+  taxRate?: number; // Percentage
+  
+  // Inventory
+  stock: number;
+  lowStockThreshold?: number;
+  allowBackorders?: boolean;
+  
+  // Media
+  imageUrl: string; // Main Cover
+  galleryImages?: string[]; // Additional images
+  videoUrl?: string;
+  
+  // Shipping
+  weight?: number; // kg
+  dimensions?: {
+    length: number;
+    width: number;
+    height: number;
+  };
+  
+  // SEO
   seoTitle?: string;
   seoDescription?: string;
-  variants?: { name: string; options: string[] }[];
+  seoKeywords?: string[];
+
+  // Variants
+  hasVariants?: boolean;
+  variants?: ProductVariant[];
+}
+
+export interface ProductVariant {
+  id?: string;
+  name: string; // e.g., "Size" or "Color"
+  options: {
+    value: string; // e.g., "Red", "XL"
+    price?: number; // Overrides base price
+    stock?: number; // Specific stock
+    image?: string; // Variant specific image
+  }[];
 }
 
 export interface CartItem extends Product {
   quantity: number;
+}
+
+export interface OrderItem {
+    productId: string | Product; // Can be ID or populated object
+    quantity: number;
 }
 
 export interface Order {
@@ -27,10 +81,21 @@ export interface Order {
   userId?: string;
   customerName: string;
   customerEmail: string;
+  customerPhone?: string;
+  shippingAddress?: {
+      address: string;
+      city: string;
+      postalCode: string;
+      country: string;
+  };
+  trackingInfo?: {
+      carrier: string;
+      trackingNumber: string;
+  };
   date: string;
   total: number;
   status: 'Pending' | 'Processing' | 'Packed' | 'Shipped' | 'Delivered' | 'Returned' | 'Cancelled';
-  items: { productId: string; quantity: number }[];
+  items: OrderItem[];
 }
 
 export type UserRole = 'Super Admin' | 'Manager' | 'Editor' | 'Staff' | 'User';

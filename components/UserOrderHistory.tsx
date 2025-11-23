@@ -54,7 +54,7 @@ const UserOrderHistory: React.FC<{ token: string | null }> = ({ token }) => {
                 <tr key={order.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">#{order.id.substring(0, 8)}...</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(order.date).toLocaleDateString()}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">${order.total.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-medium">₹{order.total.toFixed(2)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       order.status === 'Delivered' ? 'bg-green-100 text-green-800' :

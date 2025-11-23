@@ -77,7 +77,7 @@ const Header: React.FC<HeaderProps> = ({ user, logout }) => {
             </div>
             <div className="relative">
               <button className="flex items-center hover:text-blue-600">
-                USD <ChevronDownIcon />
+                INR <ChevronDownIcon />
               </button>
             </div>
           </div>

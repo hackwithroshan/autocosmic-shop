@@ -27,6 +27,60 @@ router.get('/categories', async (req, res) => {
   }
 });
 
+// Create a category (Admin only)
+router.post('/categories', authMiddleware(true), async (req, res) => {
+  try {
+    const { name } = req.body;
+    // Create a simple slug-like ID
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    
+    let category = await Category.findOne({ id });
+    if (category) {
+        return res.status(400).json({ message: 'Category already exists' });
+    }
+
+    const newCategory = new Category({
+        name,
+        id,
+        subcategories: []
+    });
+    await newCategory.save();
+    res.json(newCategory);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Update a category (Admin only)
+router.put('/categories/:id', authMiddleware(true), async (req, res) => {
+  try {
+    const { name } = req.body;
+    const category = await Category.findOneAndUpdate(
+      { id: req.params.id }, 
+      { name }, 
+      { new: true }
+    );
+    if (!category) return res.status(404).json({ message: 'Category not found' });
+    res.json(category);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// Delete a category (Admin only)
+router.delete('/categories/:id', authMiddleware(true), async (req, res) => {
+  try {
+    const category = await Category.findOneAndDelete({ id: req.params.id });
+    if (!category) return res.status(404).json({ message: 'Category not found' });
+    res.json({ message: 'Category removed' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 // Create a product (Admin only)
 router.post('/', authMiddleware(true), async (req, res) => {
   try {

@@ -38,4 +38,40 @@ router.get('/', authMiddleware(true), async (req, res) => {
   }
 });
 
+// Update User (Admin Only)
+router.put('/:id', authMiddleware(true), async (req, res) => {
+    try {
+        const { name, email, role } = req.body;
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (email) updateData.email = email;
+        if (role) updateData.role = role;
+
+        const user = await User.findByIdAndUpdate(
+            req.params.id, 
+            updateData, 
+            { new: true }
+        ).select('-password');
+
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        res.json(user);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// Delete User (Admin Only)
+router.delete('/:id', authMiddleware(true), async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        
+        // Optional: Delete user's orders or keep them? Keeping them for records usually better, but anonymizing might be needed.
+        // For now, we just delete the user.
+        res.json({ message: 'User deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 module.exports = router;
