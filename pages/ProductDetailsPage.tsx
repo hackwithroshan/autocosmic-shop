@@ -122,29 +122,23 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
       <Header user={user} logout={logout} />
       
       {/* Breadcrumb */}
-      <div className="container mx-auto px-4 py-4 text-xs text-gray-500">
+      <div className="container mx-auto px-4 py-4 text-xs text-gray-500 overflow-x-auto whitespace-nowrap">
          <Link to="/" className="hover:text-black">Home</Link>
          <span className="mx-2">/</span>
          <span className="text-gray-900 truncate">{product.name}</span>
       </div>
 
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <main className="flex-grow container mx-auto px-4 py-4 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
             
             {/* Left Column: Gallery */}
             <div className="space-y-4">
-                <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-gray-100">
+                <div className="relative aspect-[3/4] md:aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
                      <img 
                         src={activeImage} 
                         alt={product.name} 
                         className="h-full w-full object-cover object-center transition-opacity duration-300"
                      />
-                     <button className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md hover:scale-110 transition-transform">
-                        <span className="sr-only">Zoom</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                        </svg>
-                     </button>
                      {/* Badges */}
                      <div className="absolute top-4 left-4 flex flex-col gap-2">
                          {product.stock <= 0 ? (
@@ -155,14 +149,14 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
                      </div>
                 </div>
                 
-                {/* Thumbnails */}
+                {/* Thumbnails - scrollable on mobile */}
                 {images.length > 1 && (
-                    <div className="grid grid-cols-5 gap-4">
+                    <div className="flex space-x-3 overflow-x-auto pb-2 md:grid md:grid-cols-5 md:gap-4 md:space-x-0">
                         {images.map((img, idx) => (
                             <button 
                                 key={idx} 
                                 onClick={() => setActiveImage(img)}
-                                className={`aspect-square rounded-md overflow-hidden border-2 ${activeImage === img ? 'border-black' : 'border-transparent hover:border-gray-300'}`}
+                                className={`flex-shrink-0 w-20 md:w-auto aspect-square rounded-md overflow-hidden border-2 transition-colors ${activeImage === img ? 'border-black' : 'border-transparent hover:border-gray-300'}`}
                             >
                                 <img src={img} alt={`View ${idx}`} className="h-full w-full object-cover"/>
                             </button>
@@ -176,7 +170,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
                 <div className="mb-2">
                     <span className="text-sm text-gray-500 font-medium uppercase tracking-widest">{product.brand || "AutoCosmic"}</span>
                 </div>
-                <h1 className="text-3xl font-serif text-gray-900 mb-2 leading-tight">{product.name}</h1>
+                <h1 className="text-2xl md:text-3xl font-serif text-gray-900 mb-2 leading-tight">{product.name}</h1>
                 
                 <div className="text-2xl font-medium text-gray-900 mb-6">
                     ₹{product.price.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
@@ -185,7 +179,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
                 {/* Info Blocks */}
                 <div className="space-y-4 mb-8 border border-gray-100 rounded-lg p-4 bg-gray-50/50">
                     <div className="flex items-start space-x-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                              <path d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v3.28a1 1 0 00.2 2.68l.9 1.2a2 2 0 01-.9.4H4a1 1 0 000 2h1a2 2 0 012 2v2a2 2 0 002 2h6a2 2 0 002-2v-2h2l3-6v-3h-6zm-6-6h4" />
                         </svg>
@@ -194,7 +188,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
                         </div>
                     </div>
                      <div className="flex items-start space-x-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-600 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
                         <div>
@@ -235,27 +229,17 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
                     </div>
                 )}
                 
-                <div className="flex space-x-6 mb-8 text-sm text-gray-600">
-                    <button className="flex items-center hover:text-black transition-colors"><span className="mr-2">?</span> Ask a question</button>
-                    <button className="flex items-center hover:text-black transition-colors">
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                         </svg>
-                        Share
-                    </button>
-                </div>
-
                 {/* Actions */}
                 <div className="space-y-4 mb-8">
-                     <div className="flex items-center space-x-4">
-                        <div className="flex items-center border border-gray-300 h-12 w-32 rounded-md">
+                     <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex items-center border border-gray-300 h-12 w-full sm:w-32 rounded-md">
                             <button 
-                                className="px-3 text-gray-600 hover:bg-gray-100 h-full w-full rounded-l-md"
+                                className="px-3 text-gray-600 hover:bg-gray-100 h-full w-full rounded-l-md text-xl"
                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
                             >−</button>
                             <span className="flex-1 text-center font-medium">{quantity}</span>
                             <button 
-                                className="px-3 text-gray-600 hover:bg-gray-100 h-full w-full rounded-r-md"
+                                className="px-3 text-gray-600 hover:bg-gray-100 h-full w-full rounded-r-md text-xl"
                                 onClick={() => setQuantity(quantity + 1)}
                             >+</button>
                         </div>
@@ -307,17 +291,17 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
         </div>
 
         {/* Feature Banner */}
-        <div className="bg-black text-white py-4 px-4 mt-16 mb-16 overflow-hidden rounded-md">
-            <div className="flex justify-between items-center text-xs md:text-sm font-medium uppercase tracking-widest max-w-6xl mx-auto text-center md:text-left">
-                <div className="flex items-center gap-2"><span className="hidden md:inline text-gray-500">((o))</span> COD(Cash on Delivery) Available</div>
-                <div className="flex items-center gap-2"><span className="hidden md:inline text-gray-500">((o))</span> No Return No Exchange</div>
-                <div className="flex items-center gap-2"><span className="hidden md:inline text-gray-500">((o))</span> Free delivery</div>
+        <div className="bg-black text-white py-4 px-4 mt-12 mb-12 overflow-hidden rounded-md">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-2 text-xs md:text-sm font-medium uppercase tracking-widest max-w-6xl mx-auto text-center md:text-left">
+                <div className="flex items-center gap-2"><span className="text-gray-500">((o))</span> COD Available</div>
+                <div className="flex items-center gap-2"><span className="text-gray-500">((o))</span> No Return No Exchange</div>
+                <div className="flex items-center gap-2"><span className="text-gray-500">((o))</span> Free delivery</div>
             </div>
         </div>
 
         {/* People Also Bought */}
         {relatedProducts.length > 0 && (
-            <section className="mb-20">
+            <section className="mb-16">
                 <h2 className="text-2xl font-serif text-center mb-2">People Also Bought</h2>
                 <p className="text-center text-gray-500 text-sm mb-8">Similar items in {product.category}</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

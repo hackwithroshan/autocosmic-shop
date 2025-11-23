@@ -80,7 +80,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
       return (
           <div className="flex flex-col min-h-screen">
               <Header user={user} logout={logout} />
-              <main className="flex-grow flex items-center justify-center">
+              <main className="flex-grow flex items-center justify-center bg-gray-50 px-4">
                   <div className="text-center">
                       <h2 className="text-2xl font-bold text-gray-900">Your cart is empty</h2>
                       <button onClick={() => navigate('/')} className="mt-4 text-blue-600 hover:underline">Go shopping</button>
@@ -94,66 +94,69 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header user={user} logout={logout} />
-      <main className="flex-grow container mx-auto px-4 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+      <main className="flex-grow container mx-auto px-4 py-8 sm:py-12">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 text-center sm:text-left">Checkout</h1>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           
           {/* Shipping Form */}
-          <div>
+          <div className="order-2 lg:order-1">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Shipping Information</h2>
-            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">First Name</label>
-                  <input type="text" name="firstName" required value={formData.firstName} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+                  <input type="text" name="firstName" required value={formData.firstName} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500 transition-colors" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                  <input type="text" name="lastName" required value={formData.lastName} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+                  <input type="text" name="lastName" required value={formData.lastName} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500 transition-colors" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                    <input type="email" name="email" required value={formData.email} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+                    <input type="email" name="email" required value={formData.email} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500 transition-colors" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                    <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" placeholder="+91..." />
+                    <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500 transition-colors" placeholder="+91..." />
                   </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Address</label>
-                <input type="text" name="address" required value={formData.address} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+                <input type="text" name="address" required value={formData.address} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500 transition-colors" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">City</label>
-                  <input type="text" name="city" required value={formData.city} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+                  <input type="text" name="city" required value={formData.city} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500 transition-colors" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Postal Code</label>
-                  <input type="text" name="postalCode" required value={formData.postalCode} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+                  <input type="text" name="postalCode" required value={formData.postalCode} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500 transition-colors" />
                 </div>
               </div>
               <div>
                   <label className="block text-sm font-medium text-gray-700">Country</label>
-                  <input type="text" name="country" required value={formData.country} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500" />
+                  <input type="text" name="country" required value={formData.country} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-orange-500 focus:border-orange-500 transition-colors" />
               </div>
             </form>
           </div>
 
           {/* Order Summary */}
-          <div className="bg-white p-6 rounded-lg shadow-md h-fit">
+          <div className="order-1 lg:order-2 bg-white p-6 rounded-lg shadow-md h-fit lg:sticky lg:top-24">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Order Summary</h2>
-            <ul className="divide-y divide-gray-200 mb-4">
+            <ul className="divide-y divide-gray-200 mb-4 max-h-64 overflow-y-auto">
               {cart.map((item) => (
-                <li key={item.id} className="py-3 flex justify-between">
-                  <div className="flex items-center">
-                    <span className="text-gray-600 font-medium">{item.quantity}x</span>
-                    <span className="ml-2 text-gray-900">{item.name}</span>
+                <li key={item.id} className="py-3 flex justify-between items-center">
+                  <div className="flex items-center flex-1 overflow-hidden">
+                    <img src={item.imageUrl} alt={item.name} className="h-10 w-10 rounded object-cover border border-gray-100 mr-3" />
+                    <div className="truncate">
+                        <span className="text-gray-600 font-medium text-sm mr-2">{item.quantity}x</span>
+                        <span className="text-gray-900 text-sm truncate">{item.name}</span>
+                    </div>
                   </div>
-                  <span className="text-gray-900">₹{(item.price * item.quantity).toFixed(2)}</span>
+                  <span className="text-gray-900 text-sm font-medium whitespace-nowrap ml-2">₹{(item.price * item.quantity).toFixed(2)}</span>
                 </li>
               ))}
             </ul>
@@ -164,11 +167,11 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             
             <div className="mt-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Payment Method</h3>
-                <div className="flex space-x-4 mb-6">
-                    <div className="border border-orange-500 bg-orange-50 p-3 rounded-md flex-1 text-center cursor-pointer text-orange-700 font-medium">
+                <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 mb-6">
+                    <div className="border border-orange-500 bg-orange-50 p-3 rounded-md flex-1 text-center cursor-pointer text-orange-700 font-medium transition-colors">
                         Credit Card
                     </div>
-                     <div className="border border-gray-200 p-3 rounded-md flex-1 text-center cursor-pointer text-gray-600 hover:bg-gray-50">
+                     <div className="border border-gray-200 p-3 rounded-md flex-1 text-center cursor-pointer text-gray-600 hover:bg-gray-50 transition-colors">
                         PayPal
                     </div>
                 </div>

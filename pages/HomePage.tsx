@@ -75,7 +75,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
       <Header user={user} logout={logout} />
       <main className="flex-grow">
         {/* Hero Section Slider */}
-        <div className="relative bg-gray-800 h-[600px] overflow-hidden">
+        <div className="relative bg-gray-800 h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
           {slides.length > 0 ? slides.map((slide, index) => (
             <div
               key={slide._id || index}
@@ -85,14 +85,14 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
               <div className="absolute inset-0 bg-gray-900 opacity-60"></div>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="relative max-w-7xl mx-auto py-24 px-4 sm:py-32 sm:px-6 lg:px-8 text-center">
-                    <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl">
+                    <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-5xl lg:text-6xl mb-4 drop-shadow-lg">
                         {slide.title}
                     </h1>
-                    <p className="mt-6 max-w-lg mx-auto text-xl text-indigo-100">
+                    <p className="mt-4 max-w-lg mx-auto text-base sm:text-xl text-indigo-100 drop-shadow-md">
                         {slide.subtitle}
                     </p>
-                    <div className="mt-10 max-w-sm mx-auto sm:max-w-none sm:flex sm:justify-center">
-                        <button className="px-8 py-3 border border-transparent text-base font-medium rounded-md text-white shadow-sm hover:opacity-90" style={{backgroundColor: COLORS.accent}}>
+                    <div className="mt-8 sm:mt-10 max-w-sm mx-auto sm:max-w-none sm:flex sm:justify-center">
+                        <button className="px-8 py-3 border border-transparent text-base font-medium rounded-md text-white shadow-lg hover:opacity-90 transition-transform transform hover:scale-105" style={{backgroundColor: COLORS.accent}}>
                             {slide.buttonText}
                         </button>
                     </div>
@@ -107,10 +107,10 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
           
           {slides.length > 1 && <>
             {/* Slider Controls */}
-            <button onClick={prevSlide} className="absolute top-1/2 left-4 transform -translate-y-1/2 bg-black bg-opacity-30 text-white p-3 rounded-full hover:bg-opacity-50 z-10">
+            <button onClick={prevSlide} className="absolute top-1/2 left-2 sm:left-4 transform -translate-y-1/2 bg-black bg-opacity-30 text-white p-2 sm:p-3 rounded-full hover:bg-opacity-50 z-10 transition-all">
               <ChevronLeftIcon />
             </button>
-            <button onClick={nextSlide} className="absolute top-1/2 right-4 transform -translate-y-1/2 bg-black bg-opacity-30 text-white p-3 rounded-full hover:bg-opacity-50 z-10">
+            <button onClick={nextSlide} className="absolute top-1/2 right-2 sm:right-4 transform -translate-y-1/2 bg-black bg-opacity-30 text-white p-2 sm:p-3 rounded-full hover:bg-opacity-50 z-10 transition-all">
               <ChevronRightIcon />
             </button>
             
@@ -120,7 +120,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
                 <button
                   key={index}
                   onClick={() => goToSlide(index)}
-                  className={`w-3 h-3 rounded-full transition-colors duration-300 ${index === currentSlide ? 'bg-white' : 'bg-white/50 hover:bg-white/75'}`}
+                  className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-colors duration-300 ${index === currentSlide ? 'bg-white' : 'bg-white/50 hover:bg-white/75'}`}
                   aria-label={`Go to slide ${index + 1}`}
                 ></button>
               ))}
@@ -130,14 +130,14 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
 
         {/* Featured Products Section */}
         <div className="bg-white">
-          <div className="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">
-            <h2 className="text-2xl font-extrabold tracking-tight text-gray-900">Featured Products</h2>
+          <div className="max-w-2xl mx-auto py-12 px-4 sm:py-16 sm:px-6 lg:max-w-7xl lg:px-8">
+            <h2 className="text-2xl font-extrabold tracking-tight text-gray-900 mb-8 text-center sm:text-left">Featured Products</h2>
             
             {loading && <p className="mt-6 text-center">Loading products...</p>}
             {error && <p className="mt-6 text-center text-red-500">{error}</p>}
 
             {!loading && !error && (
-              <div className="mt-6 grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
+              <div className="grid grid-cols-1 gap-y-10 gap-x-6 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
                 {products.map((product) => (
                   <ProductCard key={product.id} product={product} onProductClick={handleProductClick} />
                 ))}
