@@ -1,10 +1,9 @@
-
 import React from 'react';
 
 export const COLORS = {
-  primary: '#0F172A', // A slightly more modern dark blue
-  accent: '#F97316', // A vibrant orange
-  secondary: '#E2E8F0',
+  primary: '#881337', // Rose 900 - Deep elegant red/pink
+  accent: '#E11D48', // Rose 600 - Vibrant pink/red
+  secondary: '#FFF1F2', // Rose 50
   body: '#1E293B',
 };
 

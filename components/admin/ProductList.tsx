@@ -90,11 +90,13 @@ const ProductList: React.FC<{token: string | null}> = ({token}) => {
     }
   };
 
-  // --- Filtering Logic ---
-  const filteredProducts = products.filter(product => 
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // --- Filtering Logic (Client-Side Search) ---
+  const filteredProducts = products.filter(product => {
+    const term = searchTerm.toLowerCase();
+    const nameMatch = product.name.toLowerCase().includes(term);
+    const categoryMatch = (product.category || '').toLowerCase().includes(term);
+    return nameMatch || categoryMatch;
+  });
 
   // --- Pagination Logic (Applied to Filtered Results) ---
   const indexOfLastItem = currentPage * itemsPerPage;

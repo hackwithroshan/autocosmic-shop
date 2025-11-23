@@ -6,76 +6,76 @@ const Slide = require('./models/Slide');
 
 const categoriesData = [
   {
-    id: 'performance',
-    name: 'Performance',
+    id: 'clothing',
+    name: 'Clothing',
     subcategories: [
-      { id: 'exhaust', name: 'Exhaust Systems' },
-      { id: 'turbos', name: 'Turbochargers' },
-      { id: 'intakes', name: 'Air Intakes' },
-      { id: 'tuning', name: 'ECU Tuning' },
+      { id: 'dresses', name: 'Dresses' },
+      { id: 'tops', name: 'Tops & Blouses' },
+      { id: 'jeans', name: 'Jeans & Denim' },
+      { id: 'ethnic', name: 'Ethnic Wear' },
     ],
   },
   {
-    id: 'exterior',
-    name: 'Exterior',
+    id: 'footwear',
+    name: 'Footwear',
     subcategories: [
-      { id: 'body-kits', name: 'Body Kits' },
-      { id: 'spoilers', name: 'Spoilers & Wings' },
-      { id: 'lighting', name: 'Lighting' },
-      { id: 'wheels', name: 'Wheels & Tires' },
+      { id: 'heels', name: 'Heels & Pumps' },
+      { id: 'flats', name: 'Flats & Sandals' },
+      { id: 'sneakers', name: 'Sneakers' },
+      { id: 'boots', name: 'Boots' },
     ],
   },
   {
-    id: 'interior',
-    name: 'Interior',
+    id: 'accessories',
+    name: 'Accessories',
     subcategories: [
-      { id: 'seats', name: 'Racing Seats' },
-      { id: 'steering', name: 'Steering Wheels' },
-      { id: 'gauges', name: 'Gauges & Pods' },
-      { id: 'shifters', name: 'Short Shifters' },
+      { id: 'bags', name: 'Handbags' },
+      { id: 'jewelry', name: 'Jewelry' },
+      { id: 'watches', name: 'Watches' },
+      { id: 'sunglasses', name: 'Sunglasses' },
     ],
   },
    {
-    id: 'maintenance',
-    name: 'Maintenance',
+    id: 'beauty',
+    name: 'Beauty',
     subcategories: [
-      { id: 'oil', name: 'Oil & Fluids' },
-      { id: 'filters', name: 'Filters' },
-      { id: 'brakes', name: 'Brake Pads & Rotors' },
-      { id: 'plugs', name: 'Spark Plugs' },
+      { id: 'makeup', name: 'Makeup' },
+      { id: 'skincare', name: 'Skincare' },
+      { id: 'fragrance', name: 'Fragrance' },
+      { id: 'haircare', name: 'Haircare' },
     ],
   },
 ];
 
 const productsData = [
-  { name: 'CosmicFlow Turbo Kit', category: 'Performance', price: 1999.99, stock: 15, imageUrl: 'https://picsum.photos/seed/turbo/400/400', description: 'Boost your performance with our state-of-the-art turbocharger kit.' },
-  { name: 'AeroForm Carbon Spoiler', category: 'Exterior', price: 749.50, stock: 32, imageUrl: 'https://picsum.photos/seed/spoiler/400/400', description: 'Lightweight carbon fiber spoiler for maximum downforce and style.' },
-  { name: 'GripMaster Racing Seat', category: 'Interior', price: 599.00, stock: 8, imageUrl: 'https://picsum.photos/seed/seat/400/400', description: 'Stay planted in the corners with the GripMaster racing seat.' },
-  { name: 'QuantumShift Short Shifter', category: 'Interior', price: 220.00, stock: 50, imageUrl: 'https://picsum.photos/seed/shifter/400/400', description: 'Crisp and precise shifts every time.' },
-  { name: 'NovaBeam LED Headlights', category: 'Exterior', price: 450.00, stock: 25, imageUrl: 'https://picsum.photos/seed/lights/400/400', description: 'Illuminate the road ahead with powerful and stylish LED headlights.' },
-  { name: 'Vortex Cold Air Intake', category: 'Performance', price: 320.75, stock: 40, imageUrl: 'https://picsum.photos/seed/intake/400/400', description: 'Increase horsepower and torque with a high-flow cold air intake system.' },
-  { name: 'Titanium Performance Exhaust', category: 'Performance', price: 1250.00, stock: 18, imageUrl: 'https://picsum.photos/seed/exhaust/400/400', description: 'Aggressive sound and performance gains from a full titanium exhaust.' },
-  { name: 'Forged Alloy Wheels (Set of 4)', category: 'Exterior', price: 2500.00, stock: 12, imageUrl: 'https://picsum.photos/seed/wheels/400/400', description: 'Ultra-light and strong forged alloy wheels to reduce unsprung weight.' },
+  { name: 'Floral Summer Maxi Dress', category: 'Clothing', price: 1499.00, stock: 25, imageUrl: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?q=80&w=400&auto=format&fit=crop', description: 'Elegant floral print maxi dress, perfect for summer outings. Breathable fabric and comfortable fit.' },
+  { name: 'Classic Leather Tote Bag', category: 'Accessories', price: 2999.00, stock: 15, imageUrl: 'https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=400&auto=format&fit=crop', description: 'Premium leather tote bag with ample space for your essentials. Timeless design for every occasion.' },
+  { name: 'Rose Gold Plated Necklace', category: 'Accessories', price: 899.00, stock: 50, imageUrl: 'https://images.unsplash.com/photo-1599643478518-17488fbbcd75?q=80&w=400&auto=format&fit=crop', description: 'Delicate rose gold plated necklace with a minimalist pendant. Adds a touch of sophistication to any outfit.' },
+  { name: 'Red Stiletto Heels', category: 'Footwear', price: 2499.00, stock: 20, imageUrl: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?q=80&w=400&auto=format&fit=crop', description: 'Bold and beautiful red stiletto heels. Perfect for parties and evening events.' },
+  { name: 'Denim Jacket with Embroidery', category: 'Clothing', price: 1850.00, stock: 30, imageUrl: 'https://images.unsplash.com/photo-1544642899-f0d6e5f6ed6f?q=80&w=400&auto=format&fit=crop', description: 'Stylish denim jacket featuring intricate floral embroidery. A versatile layer for any season.' },
+  { name: 'Matte Liquid Lipstick Set', category: 'Beauty', price: 999.00, stock: 100, imageUrl: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?q=80&w=400&auto=format&fit=crop', description: 'Long-lasting matte liquid lipstick set in 3 stunning shades. Smudge-proof and highly pigmented.' },
+  { name: 'Silk Scarf - Vintage Print', category: 'Accessories', price: 450.00, stock: 40, imageUrl: 'https://images.unsplash.com/photo-1584030373081-f37b7bb4fa8e?q=80&w=400&auto=format&fit=crop', description: 'Luxurious silk scarf with a vintage print. Soft, smooth, and adds a chic flair to your look.' },
+  { name: 'White Casual Sneakers', category: 'Footwear', price: 1299.00, stock: 35, imageUrl: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?q=80&w=400&auto=format&fit=crop', description: 'Comfortable white sneakers for everyday wear. Pairs perfectly with jeans or dresses.' },
 ];
 
 const slidesData = [
   {
-    imageUrl: "https://picsum.photos/seed/carbg1/1920/1080",
-    title: "Unleash Your Ride's Potential",
-    subtitle: "Premium performance parts and accessories to elevate your driving experience.",
-    buttonText: "Shop Performance"
+    imageUrl: "https://images.unsplash.com/photo-1483985988355-763728e1935b?q=80&w=1920&auto=format&fit=crop",
+    title: "New Season Arrivals",
+    subtitle: "Discover the latest trends in women's fashion. Elevate your style today.",
+    buttonText: "Shop Collection"
   },
   {
-    imageUrl: "https://picsum.photos/seed/carbg2/1920/1080",
-    title: "Style That Turns Heads",
-    subtitle: "Discover our exclusive range of exterior and interior styling options.",
-    buttonText: "Explore Styling"
+    imageUrl: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1920&auto=format&fit=crop",
+    title: "Elegance Redefined",
+    subtitle: "Explore our exclusive range of dresses and evening wear.",
+    buttonText: "View Dresses"
   },
   {
-    imageUrl: "https://picsum.photos/seed/carbg3/1920/1080",
-    title: "Essential Maintenance, Simplified",
-    subtitle: "Keep your car in peak condition with our high-quality maintenance parts.",
-    buttonText: "View Maintenance Kits"
+    imageUrl: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=1920&auto=format&fit=crop",
+    title: "Beauty & Glow",
+    subtitle: "Premium skincare and makeup essentials for a radiant you.",
+    buttonText: "Shop Beauty"
   }
 ];
 
@@ -100,21 +100,21 @@ const seedDatabase = async () => {
       console.log('No header settings found, seeding database...');
       await HeaderSetting.create({
         uniqueId: 'main_header_settings',
-        logoText: 'AutoCosmic',
-        phoneNumber: '+001 123 456 789',
+        logoText: 'Ladies Smart Choice',
+        phoneNumber: '+91 987 654 3210',
         topBarLinks: [
           { text: 'About Us', url: '#' },
           { text: 'Order Tracking', url: '#' },
           { text: 'Contact Us', url: '#' },
-          { text: 'FAQs', url: '#' },
+          { text: 'Blog', url: '#' },
         ],
         mainNavLinks: [
-            { text: 'Performance Parts', url: '#' },
-            { text: 'Exterior Styling', url: '#' },
-            { text: 'Interior Upgrades', url: '#' },
-            { text: 'Wheels & Tires', url: '#' },
-            { text: 'Maintenance', url: '#' },
-            { text: 'Blog', url: '#' },
+            { text: 'New Arrivals', url: '#' },
+            { text: 'Clothing', url: '#' },
+            { text: 'Footwear', url: '#' },
+            { text: 'Accessories', url: '#' },
+            { text: 'Beauty', url: '#' },
+            { text: 'Sale', url: '#' },
         ]
       });
       console.log('Header settings seeded.');

@@ -9,8 +9,8 @@ const LinkSchema = new mongoose.Schema({
 const HeaderSettingSchema = new mongoose.Schema({
   // Using a unique key to enforce a single settings document
   uniqueId: { type: String, default: 'main_header_settings', unique: true },
-  logoText: { type: String, default: 'AutoCosmic' },
-  phoneNumber: { type: String, default: '+001 123 456 789' },
+  logoText: { type: String, default: 'Ladies Smart Choice' },
+  phoneNumber: { type: String, default: '+91 987 654 3210' },
   topBarLinks: [LinkSchema],
   mainNavLinks: [LinkSchema],
 });

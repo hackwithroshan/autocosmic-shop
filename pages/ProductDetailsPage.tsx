@@ -168,7 +168,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
             {/* Right Column: Details */}
             <div className="flex flex-col">
                 <div className="mb-2">
-                    <span className="text-sm text-gray-500 font-medium uppercase tracking-widest">{product.brand || "AutoCosmic"}</span>
+                    <span className="text-sm text-gray-500 font-medium uppercase tracking-widest">{product.brand || "Ladies Smart Choice"}</span>
                 </div>
                 <h1 className="text-2xl md:text-3xl font-serif text-gray-900 mb-2 leading-tight">{product.name}</h1>
                 
@@ -261,7 +261,7 @@ const ProductDetailsPage: React.FC<ProductDetailsPageProps> = ({ user, logout })
                      {product.stock > 0 && (
                         <button 
                             onClick={handleBuyNow}
-                            className="w-full h-12 border-2 border-orange-600 text-orange-600 font-bold uppercase tracking-widest hover:bg-orange-50 transition-colors rounded-md"
+                            className="w-full h-12 border-2 font-bold uppercase tracking-widest transition-colors rounded-md text-pink-600 border-pink-600 hover:bg-pink-50"
                         >
                             Buy It Now
                         </button>

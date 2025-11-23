@@ -108,6 +108,7 @@ export interface User {
   totalOrders: number;
   avatarUrl: string;
   role: UserRole;
+  isAdmin?: boolean; 
   segment?: 'VIP' | 'New' | 'Returning' | 'High-Value'; 
 }
 
@@ -159,4 +160,13 @@ export interface SiteSettings {
   shippingCharge: number;
   pixelId: string;
   facebookPixelId: string;
+}
+
+export interface MediaItem {
+  id: string;
+  url: string;
+  public_id: string;
+  format: string;
+  type: 'image' | 'video';
+  createdAt: string;
 }
