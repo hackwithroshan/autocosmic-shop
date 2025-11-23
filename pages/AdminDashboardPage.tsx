@@ -9,11 +9,11 @@ import Customers from '../components/admin/Customers';
 import Marketing from '../components/admin/Marketing';
 import Discounts from '../components/admin/Discounts';
 import Settings from '../components/admin/Settings';
-import SliderSettings from '../components/admin/SliderSettings';
+import CMSManagement from '../components/admin/CMSManagement';
 import MediaLibrary from '../components/admin/MediaLibrary';
 import { COLORS } from '../constants';
 
-type AdminView = 'dashboard' | 'products' | 'orders' | 'customers' | 'marketing' | 'discounts' | 'settings' | 'slider' | 'media';
+type AdminView = 'dashboard' | 'products' | 'orders' | 'customers' | 'marketing' | 'discounts' | 'settings' | 'cms' | 'media';
 
 interface AdminDashboardPageProps {
   user: any;
@@ -41,8 +41,8 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ user, logout })
         return <Discounts token={token} />;
       case 'settings':
         return <Settings token={token} />;
-      case 'slider':
-        return <SliderSettings token={token} />;
+      case 'cms':
+        return <CMSManagement token={token} />;
       case 'media':
         return <MediaLibrary token={token} />;
       default:

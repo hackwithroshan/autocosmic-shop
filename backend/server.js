@@ -13,6 +13,8 @@ const slideRoutes = require('./routes/slides');
 const campaignRoutes = require('./routes/campaigns');
 const discountRoutes = require('./routes/discounts');
 const mediaRoutes = require('./routes/media');
+const blogRoutes = require('./routes/blogs');
+const pageRoutes = require('./routes/pages');
 const seedDatabase = require('./seed');
 
 const app = express();
@@ -111,6 +113,8 @@ app.use('/api/slides', slideRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/discounts', discountRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/blogs', blogRoutes);
+app.use('/api/pages', pageRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

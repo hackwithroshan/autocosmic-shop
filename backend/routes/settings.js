@@ -1,6 +1,7 @@
 
 const express = require('express');
 const HeaderSetting = require('../models/HeaderSetting');
+const FooterSetting = require('../models/FooterSetting');
 const SiteSettings = require('../models/SiteSettings');
 const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
@@ -20,11 +21,41 @@ router.get('/header', async (req, res) => {
 });
 
 router.put('/header', authMiddleware(true), async (req, res) => {
-  const { logoText, phoneNumber, topBarLinks, mainNavLinks } = req.body;
+  const { logoText, logoUrl, brandColor, phoneNumber, topBarLinks, mainNavLinks } = req.body;
   try {
     let settings = await HeaderSetting.findOneAndUpdate(
       { uniqueId: 'main_header_settings' },
-      { logoText, phoneNumber, topBarLinks, mainNavLinks },
+      { logoText, logoUrl, brandColor, phoneNumber, topBarLinks, mainNavLinks },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    res.json(settings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// --- Footer Settings ---
+router.get('/footer', async (req, res) => {
+  try {
+    let settings = await FooterSetting.findOne({ uniqueId: 'main_footer_settings' });
+    if (!settings) {
+       // Create default if missing
+       settings = await FooterSetting.create({});
+    }
+    res.json(settings);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.put('/footer', authMiddleware(true), async (req, res) => {
+  const { brandDescription, copyrightText, socialLinks, columns } = req.body;
+  try {
+    let settings = await FooterSetting.findOneAndUpdate(
+      { uniqueId: 'main_footer_settings' },
+      { brandDescription, copyrightText, socialLinks, columns },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
     res.json(settings);

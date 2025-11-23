@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import HeaderSettingsComponent from './HeaderSettings';
+import FooterSettingsComponent from './FooterSettings';
 import { SiteSettings } from '../../types';
 
-type SettingsTab = 'header' | 'site' | 'tax' | 'shipping' | 'pixels';
+type SettingsTab = 'header' | 'footer' | 'site' | 'tax' | 'shipping' | 'pixels';
 
 const Settings: React.FC<{token: string | null}> = ({token}) => {
     const [activeTab, setActiveTab] = useState<SettingsTab>('header');
@@ -12,7 +13,7 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
 
     useEffect(() => {
         const fetchSiteSettings = async () => {
-             if (activeTab === 'header') return;
+             if (activeTab === 'header' || activeTab === 'footer') return;
              setLoading(true);
              try {
                  const res = await fetch('/api/settings/site');
@@ -70,6 +71,8 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
         switch (activeTab) {
             case 'header':
                 return <HeaderSettingsComponent token={token} />;
+            case 'footer':
+                return <FooterSettingsComponent token={token} />;
             case 'pixels':
                 return (
                     <div className="bg-white p-6 rounded-lg shadow-md max-w-3xl">
@@ -133,8 +136,9 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
     return (
         <div className="space-y-6">
              <h2 className="text-2xl font-bold text-gray-800">Store Settings</h2>
-             <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg w-fit">
+             <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg w-fit overflow-x-auto">
                 <TabButton id="header" label="Header & Menu" />
+                <TabButton id="footer" label="Footer" />
                 <TabButton id="tax" label="Taxes" />
                 <TabButton id="shipping" label="Shipping" />
                 <TabButton id="pixels" label="Tracking Pixels" />

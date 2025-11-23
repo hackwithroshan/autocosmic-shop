@@ -14,6 +14,8 @@ interface HeaderProps {
 
 const initialSettings: HeaderSettings = {
     logoText: 'Loading...',
+    logoUrl: '',
+    brandColor: COLORS.primary,
     phoneNumber: 'Loading...',
     topBarLinks: [],
     mainNavLinks: [],
@@ -60,6 +62,8 @@ const Header: React.FC<HeaderProps> = ({ user, logout }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const brandColor = settings.brandColor || COLORS.primary;
+
   return (
     <header className="bg-white text-sm text-gray-600 relative z-50">
       {/* Top Bar - Hidden on mobile */}
@@ -92,8 +96,14 @@ const Header: React.FC<HeaderProps> = ({ user, logout }) => {
           {/* Logo & Mobile Icons Row */}
           <div className="flex justify-between items-center w-full lg:w-auto">
               <Link to="/" className="flex items-center space-x-2">
-                <TailGridsLogo />
-                <span className="text-2xl md:text-3xl font-bold" style={{color: COLORS.primary}}>{settings.logoText}</span>
+                {settings.logoUrl ? (
+                    <img src={settings.logoUrl} alt={settings.logoText} className="h-10 md:h-12 object-contain" />
+                ) : (
+                    <>
+                        <TailGridsLogo />
+                        <span className="text-2xl md:text-3xl font-bold" style={{color: brandColor}}>{settings.logoText}</span>
+                    </>
+                )}
               </Link>
 
               {/* Mobile Action Icons */}
@@ -181,7 +191,7 @@ const Header: React.FC<HeaderProps> = ({ user, logout }) => {
                 onMouseEnter={() => setIsMegaMenuOpen(true)}
                 onMouseLeave={() => setIsMegaMenuOpen(false)}
             >
-                <button className="flex items-center text-white px-4 py-2.5 rounded-md font-semibold hover:opacity-90 transition-colors" style={{backgroundColor: COLORS.primary}}>
+                <button className="flex items-center text-white px-4 py-2.5 rounded-md font-semibold hover:opacity-90 transition-colors" style={{backgroundColor: brandColor}}>
                     <MenuIcon /> <span className="ml-2">Shop Categories</span> <ChevronDownIcon className="h-5 w-5 ml-2 text-white" />
                 </button>
                 <MegaMenu isOpen={isMegaMenuOpen} />

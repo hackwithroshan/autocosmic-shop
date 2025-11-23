@@ -9,6 +9,7 @@ import UserDashboardPage from './pages/UserDashboardPage';
 import ProductDetailsPage from './pages/ProductDetailsPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
+import DynamicPage from './pages/DynamicPage';
 import { CartProvider } from './contexts/CartContext';
 
 const App: React.FC = () => {
@@ -58,6 +59,7 @@ const App: React.FC = () => {
               path="/product/:id" 
               element={<ProductDetailsPage user={user} logout={handleLogout} />} 
             />
+            <Route path="/pages/:slug" element={<DynamicPage user={user} logout={handleLogout} />} />
             <Route path="/cart" element={<CartPage user={user} logout={handleLogout} />} />
             <Route 
               path="/checkout" 

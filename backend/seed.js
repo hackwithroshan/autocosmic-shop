@@ -2,6 +2,7 @@
 const Product = require('./models/Product');
 const Category = require('./models/Category');
 const HeaderSetting = require('./models/HeaderSetting');
+const FooterSetting = require('./models/FooterSetting');
 const Slide = require('./models/Slide');
 
 const categoriesData = [
@@ -118,6 +119,51 @@ const seedDatabase = async () => {
         ]
       });
       console.log('Header settings seeded.');
+    }
+
+    const footerCount = await FooterSetting.countDocuments();
+    if (footerCount === 0) {
+      console.log('No footer settings found, seeding database...');
+      await FooterSetting.create({
+        uniqueId: 'main_footer_settings',
+        brandDescription: 'Your ultimate destination for trendy women\'s fashion, accessories, and lifestyle products. Elevate your style every day.',
+        copyrightText: '© 2024 Ladies Smart Choice. All rights reserved.',
+        socialLinks: [
+            { platform: 'Facebook', url: '#' },
+            { platform: 'Instagram', url: '#' },
+            { platform: 'Twitter', url: '#' }
+        ],
+        columns: [
+            {
+                title: 'Shop',
+                links: [
+                    { text: 'Clothing', url: '/shop/clothing' },
+                    { text: 'Footwear', url: '/shop/footwear' },
+                    { text: 'Accessories', url: '/shop/accessories' },
+                    { text: 'Beauty', url: '/shop/beauty' }
+                ]
+            },
+            {
+                title: 'Support',
+                links: [
+                    { text: 'Contact Us', url: '/contact' },
+                    { text: 'FAQs', url: '/faqs' },
+                    { text: 'Shipping & Returns', url: '/shipping' },
+                    { text: 'Track Order', url: '/track' }
+                ]
+            },
+            {
+                title: 'Company',
+                links: [
+                    { text: 'About Us', url: '/about' },
+                    { text: 'Careers', url: '/careers' },
+                    { text: 'Privacy Policy', url: '/privacy' },
+                    { text: 'Terms of Service', url: '/terms' }
+                ]
+            }
+        ]
+      });
+      console.log('Footer settings seeded.');
     }
     
     const slideCount = await Slide.countDocuments();

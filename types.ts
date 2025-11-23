@@ -121,9 +121,35 @@ export interface HeaderLink {
 export interface HeaderSettings {
   _id?: string;
   logoText: string;
+  logoUrl?: string;
+  brandColor?: string;
   phoneNumber: string;
   topBarLinks: HeaderLink[];
   mainNavLinks: HeaderLink[];
+}
+
+// --- Footer Types ---
+export interface FooterLink {
+  text: string;
+  url: string;
+}
+
+export interface FooterColumn {
+  title: string;
+  links: FooterLink[];
+}
+
+export interface SocialLink {
+  platform: 'Facebook' | 'Instagram' | 'Twitter' | 'LinkedIn' | 'YouTube';
+  url: string;
+}
+
+export interface FooterSettings {
+  _id?: string;
+  brandDescription: string;
+  copyrightText: string;
+  socialLinks: SocialLink[];
+  columns: FooterColumn[];
 }
 
 export interface Slide {
@@ -132,6 +158,27 @@ export interface Slide {
   title: string;
   subtitle: string;
   buttonText: string;
+}
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string;
+  imageUrl?: string;
+  author?: string;
+  status: 'Published' | 'Draft';
+  createdAt: string;
+}
+
+export interface ContentPage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  status: 'Published' | 'Hidden';
+  updatedAt: string;
 }
 
 export interface Campaign {
