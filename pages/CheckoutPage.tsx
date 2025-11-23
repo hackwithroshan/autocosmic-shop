@@ -1,10 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { COLORS } from '../constants';
+import { trackEvent } from '../utils/metaPixel';
 
 interface CheckoutPageProps {
   user: any;
@@ -25,6 +26,19 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
     postalCode: '',
     country: '',
   });
+
+  useEffect(() => {
+      if (cart.length > 0) {
+          // Meta Pixel: Initiate Checkout
+          trackEvent('InitiateCheckout', {
+              content_ids: cart.map(item => item.id),
+              content_type: 'product',
+              value: cartTotal,
+              currency: 'INR',
+              num_items: cart.reduce((acc, item) => acc + item.quantity, 0)
+          });
+      }
+  }, [cart, cartTotal]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -60,10 +74,19 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             currency: currency,
             name: "Ladies Smart Choice",
             description: "Payment for Order",
-            image: "https://cdn-icons-png.flaticon.com/512/4440/4440935.png", // Generic shop icon
+            image: "https://cdn-icons-png.flaticon.com/512/4440/4440935.png", 
             order_id: order_id,
             handler: async function (response: any) {
-                // 3. Payment Success - Verify on Backend
+                // 3. Payment Success
+                // Meta Pixel: Track Purchase
+                trackEvent('Purchase', {
+                    value: cartTotal,
+                    currency: 'INR',
+                    content_ids: cart.map(item => item.id),
+                    content_type: 'product',
+                    order_id: order_id // Use Razorpay order ID for matching
+                });
+
                 await verifyAndPlaceOrder({
                     razorpay_payment_id: response.razorpay_payment_id,
                     razorpay_order_id: response.razorpay_order_id,
@@ -178,12 +201,14 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
       <Header user={user} logout={logout} />
       <main className="flex-grow container mx-auto px-4 py-8 sm:py-12">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 text-center sm:text-left">Checkout</h1>
+        {/* ... Existing Checkout UI ... */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           
           {/* Shipping Form */}
           <div className="order-2 lg:order-1">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Shipping Information</h2>
             <form id="checkout-form" onSubmit={handleRazorpayPayment} className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
+              {/* ... Form Inputs (First Name, Last Name, Email, etc) same as before ... */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">First Name</label>
@@ -265,7 +290,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
               type="submit"
               disabled={loading}
               className="w-full py-3 px-4 text-white font-bold rounded-md shadow hover:opacity-90 transition-opacity disabled:opacity-50"
-              style={{ backgroundColor: '#3399cc' }} // Razorpay Blue
+              style={{ backgroundColor: '#3399cc' }} 
             >
               {loading ? 'Processing...' : 'Pay & Place Order'}
             </button>

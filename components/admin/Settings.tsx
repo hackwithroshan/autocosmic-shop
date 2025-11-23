@@ -10,8 +10,18 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
     const [activeTab, setActiveTab] = useState<SettingsTab>('header');
     const [siteSettings, setSiteSettings] = useState<SiteSettings | any>({});
     const [loading, setLoading] = useState(false);
+    const [feedUrl, setFeedUrl] = useState('');
 
     useEffect(() => {
+        // Calculate Feed URL based on current window location (frontend) but pointing to API
+        // Assuming relative proxy setup '/api' works
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        // In dev it might be localhost:3000, but api is on 5001. 
+        // In prod via vercel rewrite it is same host.
+        // To be safe for copy-paste, let's assume the user knows their backend URL or we construct relative to current origin if using proxy.
+        setFeedUrl(`${protocol}//${host}/api/feed/facebook.csv`);
+
         const fetchSiteSettings = async () => {
              if (activeTab === 'header' || activeTab === 'footer') return;
              setLoading(true);
@@ -78,11 +88,25 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
                     <div className="bg-white p-6 rounded-lg shadow-md max-w-3xl">
                         <h3 className="text-lg font-bold text-gray-800 mb-4">Tracking & Pixels</h3>
                         <div className="space-y-6">
+                            
+                            <div className="bg-blue-50 border border-blue-100 p-4 rounded-md">
+                                <h4 className="text-sm font-bold text-blue-800 mb-2">Facebook Product Catalog Feed</h4>
+                                <p className="text-xs text-blue-600 mb-2">
+                                    Copy this URL and paste it into <strong>Meta Commerce Manager &gt; Data Sources &gt; Data Feed</strong>. 
+                                    Set it to update hourly/daily to keep your ads synced with real inventory.
+                                </p>
+                                <div className="flex gap-2">
+                                    <input type="text" readOnly value={feedUrl} className="flex-1 text-xs p-2 border rounded bg-white text-gray-600"/>
+                                    <button onClick={() => navigator.clipboard.writeText(feedUrl)} className="bg-blue-600 text-white text-xs px-3 rounded">Copy</button>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Facebook Pixel ID</label>
                                 <div className="mt-1 flex rounded-md shadow-sm">
                                     <input type="text" name="facebookPixelId" value={siteSettings.facebookPixelId || ''} onChange={handleChange} className="flex-1 min-w-0 block w-full px-3 py-2 rounded-md border border-gray-300" placeholder="xxxxxxxxxxxxxxx" />
                                 </div>
+                                <p className="text-xs text-gray-500 mt-1">Used for PageView, ViewContent, AddToCart, and Purchase events.</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Google Analytics 4 Measurement ID</label>
