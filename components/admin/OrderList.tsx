@@ -14,6 +14,7 @@ const OrderList: React.FC<{token: string | null}> = ({token}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
+  const [emailSending, setEmailSending] = useState(false); // State for email button
   
   // Form State for Editing
   const [editFormData, setEditFormData] = useState<Partial<Order>>({});
@@ -88,6 +89,37 @@ const OrderList: React.FC<{token: string | null}> = ({token}) => {
           alert('Error updating order');
       } finally {
           setModalLoading(false);
+      }
+  };
+
+  const handleResendEmail = async (orderId: string) => {
+      if(!window.confirm("Send order confirmation email (with invoice) to the customer?")) return;
+      
+      setEmailSending(true);
+      try {
+          const res = await fetch(`/api/orders/${orderId}/resend-email`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const data = await res.json();
+          if(res.ok) {
+              // Check for Preview URL (Test Email)
+              if (data.previewUrl) {
+                  // Open preview in new tab
+                  const win = window.open(data.previewUrl, '_blank');
+                  alert(data.message + "\n\n(Test Mode: Opening email preview in new tab)");
+                  if (!win) alert("Please allow popups to view the test email.");
+              } else {
+                  alert(data.message);
+              }
+          } else {
+              alert("Failed: " + data.message);
+          }
+      } catch (e) {
+          console.error(e);
+          alert("Network error sending email");
+      } finally {
+          setEmailSending(false);
       }
   };
 
@@ -374,6 +406,17 @@ const OrderList: React.FC<{token: string | null}> = ({token}) => {
                           <p className="text-sm text-gray-500 mt-1">{new Date(selectedOrder.date).toLocaleString()} • {selectedOrder.items.length} Items</p>
                       </div>
                       <div className="flex items-center gap-2">
+                        {/* Resend Mail Button */}
+                        <button 
+                            onClick={() => handleResendEmail(selectedOrder.id)} 
+                            disabled={emailSending}
+                            className="px-4 py-2 bg-purple-50 text-purple-600 border border-purple-200 rounded-lg font-medium hover:bg-purple-100 transition-colors flex items-center mr-2 disabled:opacity-50"
+                            title="Resend Order Confirmation & Invoice"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                            {emailSending ? 'Sending...' : 'Resend Mail'}
+                        </button>
+
                         <button 
                             onClick={() => handlePrintPackingSlip(selectedOrder)} 
                             className="px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center mr-2"

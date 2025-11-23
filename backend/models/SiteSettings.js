@@ -14,7 +14,8 @@ const SiteSettingsSchema = new mongoose.Schema({
   taxIncluded: { type: Boolean, default: false },
   shippingZones: [ShippingZoneSchema],
   facebookPixelId: { type: String, default: '' },
-  googlePixelId: { type: String, default: '' }
+  googlePixelId: { type: String, default: '' },
+  videoAutoplay: { type: Boolean, default: false } // New Field
 });
 
 module.exports = mongoose.model('SiteSettings', SiteSettingsSchema);

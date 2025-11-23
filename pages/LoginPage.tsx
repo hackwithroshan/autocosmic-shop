@@ -16,6 +16,16 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Forgot Password State
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState(1); // 1 = Email, 2 = OTP & New Password
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotMessage, setForgotMessage] = useState('');
+  const [forgotError, setForgotError] = useState('');
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -63,6 +73,78 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // --- Forgot Password Handlers ---
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setForgotLoading(true);
+      setForgotError('');
+      setForgotMessage('');
+
+      try {
+          const res = await fetch('/api/auth/forgot-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: forgotEmail })
+          });
+          const data = await res.json();
+          if (res.ok) {
+              setForgotStep(2);
+              setForgotMessage(`OTP sent to ${forgotEmail}`);
+              
+              // Check for Preview URL (Ethereal Email)
+              if (data.previewUrl) {
+                  console.log("OTP Preview:", data.previewUrl);
+                  const win = window.open(data.previewUrl, '_blank');
+                  if(win) {
+                      alert("TEST MODE: Opening OTP email in a new tab.");
+                  } else {
+                      alert("TEST MODE: OTP sent. Please allow popups to view the test email.");
+                  }
+              }
+          } else {
+              setForgotError(data.message || 'Failed to send OTP');
+          }
+      } catch (err: any) {
+          setForgotError(err.message);
+      } finally {
+          setForgotLoading(false);
+      }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setForgotLoading(true);
+      setForgotError('');
+      setForgotMessage('');
+
+      try {
+          const res = await fetch('/api/auth/reset-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: forgotEmail, otp, newPassword })
+          });
+          const data = await res.json();
+          if (res.ok) {
+              setForgotMessage('Password reset successfully! You can now login.');
+              setTimeout(() => {
+                  setIsForgotModalOpen(false);
+                  setForgotStep(1);
+                  setForgotEmail('');
+                  setOtp('');
+                  setNewPassword('');
+                  setForgotMessage('');
+              }, 3000);
+          } else {
+              setForgotError(data.message || 'Failed to reset password');
+          }
+      } catch (err: any) {
+          setForgotError(err.message);
+      } finally {
+          setForgotLoading(false);
+      }
   };
 
   return (
@@ -127,7 +209,9 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
                 <div className="flex items-center justify-between mb-1">
                   <label htmlFor="password" className="block text-xs font-medium text-gray-700 uppercase tracking-wide">Password</label>
                   <div className="text-sm">
-                    <a href="#" className="font-medium text-rose-600 hover:text-rose-500 transition-colors">Forgot password?</a>
+                    <button type="button" onClick={() => setIsForgotModalOpen(true)} className="font-medium text-rose-600 hover:text-rose-500 transition-colors">
+                        Forgot password?
+                    </button>
                   </div>
                 </div>
                 <input
@@ -186,6 +270,87 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
           </form>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {isForgotModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 backdrop-blur-sm">
+              <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
+                  <div className="px-6 py-4 border-b bg-gray-50 flex justify-between items-center">
+                      <h3 className="font-bold text-lg text-gray-800">Reset Password</h3>
+                      <button onClick={() => setIsForgotModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                  </div>
+                  
+                  <div className="p-6">
+                      {forgotError && <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded border border-red-100">{forgotError}</div>}
+                      {forgotMessage && <div className="mb-4 p-3 bg-green-50 text-green-700 text-sm rounded border border-green-100">{forgotMessage}</div>}
+
+                      {forgotStep === 1 ? (
+                          <form onSubmit={handleSendOtp}>
+                              <p className="text-sm text-gray-600 mb-4">Enter your email address and we'll send you an OTP to reset your password.</p>
+                              <div className="mb-4">
+                                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email Address</label>
+                                  <input 
+                                      type="email" 
+                                      required 
+                                      value={forgotEmail}
+                                      onChange={(e) => setForgotEmail(e.target.value)}
+                                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-rose-500 focus:border-rose-500"
+                                      placeholder="name@example.com"
+                                  />
+                              </div>
+                              <button 
+                                  type="submit" 
+                                  disabled={forgotLoading}
+                                  className="w-full bg-rose-600 text-white font-bold py-2 rounded-md hover:bg-rose-700 disabled:opacity-50"
+                              >
+                                  {forgotLoading ? 'Sending...' : 'Send OTP'}
+                              </button>
+                          </form>
+                      ) : (
+                          <form onSubmit={handleResetPassword}>
+                              <p className="text-sm text-gray-600 mb-4">An OTP has been sent to <b>{forgotEmail}</b>. Enter it below.</p>
+                              <div className="mb-4">
+                                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">OTP</label>
+                                  <input 
+                                      type="text" 
+                                      required 
+                                      value={otp}
+                                      onChange={(e) => setOtp(e.target.value)}
+                                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-rose-500 focus:border-rose-500 tracking-widest text-center font-mono text-lg"
+                                      placeholder="123456"
+                                      maxLength={6}
+                                  />
+                              </div>
+                              <div className="mb-6">
+                                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">New Password</label>
+                                  <input 
+                                      type="password" 
+                                      required 
+                                      value={newPassword}
+                                      onChange={(e) => setNewPassword(e.target.value)}
+                                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-rose-500 focus:border-rose-500"
+                                      placeholder="New strong password"
+                                  />
+                              </div>
+                              <button 
+                                  type="submit" 
+                                  disabled={forgotLoading}
+                                  className="w-full bg-rose-600 text-white font-bold py-2 rounded-md hover:bg-rose-700 disabled:opacity-50"
+                              >
+                                  {forgotLoading ? 'Reseting...' : 'Reset Password'}
+                              </button>
+                              <div className="mt-4 text-center">
+                                  <button type="button" onClick={() => setForgotStep(1)} className="text-xs text-gray-500 hover:underline">Back to Email</button>
+                              </div>
+                          </form>
+                      )}
+                  </div>
+              </div>
+          </div>
+      )}
+
     </div>
   );
 };

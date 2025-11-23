@@ -1,3 +1,4 @@
+
 const express = require('express');
 const ShoppableVideo = require('../models/ShoppableVideo');
 const Testimonial = require('../models/Testimonial');
@@ -16,12 +17,27 @@ router.get('/videos', async (req, res) => {
   }
 });
 
-// Create/Update Video (Admin)
+// Create Video (Admin)
 router.post('/videos', authMiddleware(true), async (req, res) => {
   try {
     const newVideo = new ShoppableVideo(req.body);
     const saved = await newVideo.save();
     res.status(201).json(saved);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
+// Update Video (Admin)
+router.put('/videos/:id', authMiddleware(true), async (req, res) => {
+  try {
+    const updatedVideo = await ShoppableVideo.findByIdAndUpdate(
+      req.params.id, 
+      req.body, 
+      { new: true }
+    );
+    if (!updatedVideo) return res.status(404).json({ message: 'Video not found' });
+    res.json(updatedVideo);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

@@ -2,7 +2,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const User = require('../models/User');
+const { sendWelcomeEmail, sendPasswordResetEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -40,12 +42,11 @@ router.post('/register', async (req, res) => {
       password: hashedPassword,
     });
 
-    // Determine admin status based on role if user provided one (usually not allowed in public register, but handled here for seeding/completeness)
-    // Note: Public registration defaults to 'User' role in model
-    
     await user.save();
 
-    // Re-evaluate admin status after save (in case model hooks altered it)
+    // Send Welcome Email
+    sendWelcomeEmail(user);
+
     const isAdmin = isUserAdmin(user);
 
     const payload = {
@@ -120,6 +121,71 @@ router.post('/login', async (req, res) => {
     console.error(err.message);
     res.status(500).json({ message: 'Server error' });
   }
+});
+
+// 1. Forgot Password - Generate OTP & Send Email
+router.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ message: 'User with this email does not exist' });
+        }
+
+        // Generate 6-digit OTP
+        const otp = crypto.randomInt(100000, 999999).toString();
+        
+        // Set Expiry (10 minutes from now)
+        user.resetPasswordOtp = otp;
+        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+
+        await user.save();
+
+        // Send Email
+        const result = await sendPasswordResetEmail(email, otp);
+
+        // Pass back previewUrl if it exists (dev/test mode)
+        res.json({ 
+            message: 'OTP sent to your email',
+            previewUrl: result?.previewUrl 
+        });
+
+    } catch (err) {
+        console.error("Forgot Password Error:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// 2. Reset Password - Verify OTP & Update Password
+router.post('/reset-password', async (req, res) => {
+    const { email, otp, newPassword } = req.body;
+    try {
+        const user = await User.findOne({ 
+            email,
+            resetPasswordOtp: otp,
+            resetPasswordExpires: { $gt: Date.now() } // Check if not expired
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'Invalid or expired OTP' });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+
+        // Clear reset fields
+        user.resetPasswordOtp = undefined;
+        user.resetPasswordExpires = undefined;
+
+        await user.save();
+
+        res.json({ message: 'Password has been reset successfully' });
+
+    } catch (err) {
+        console.error("Reset Password Error:", err);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 module.exports = router;

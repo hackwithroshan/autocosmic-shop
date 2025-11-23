@@ -16,6 +16,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
   const { cart, cartTotal, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  
+  // Initialize form with user data if available, otherwise empty
   const [formData, setFormData] = useState({
     firstName: user?.name?.split(' ')[0] || '',
     lastName: user?.name?.split(' ')[1] || '',
@@ -123,7 +125,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
 
   const verifyAndPlaceOrder = async (paymentInfo: any) => {
       const orderData = {
-        userId: user?.id,
+        userId: user?.id, // Might be undefined if guest
         customerName: `${formData.firstName} ${formData.lastName}`,
         customerEmail: formData.email,
         customerPhone: formData.phone,
@@ -150,15 +152,18 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             throw new Error(errData.message || 'Order verification failed');
         }
 
+        const responseData = await response.json();
         clearCart();
+        
         // Success Feedback
         const successDiv = document.createElement('div');
         successDiv.innerHTML = `
             <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 10000;">
-                <div style="background: white; padding: 40px; border-radius: 10px; text-align: center;">
+                <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; max-width: 400px;">
                     <svg style="width: 60px; height: 60px; color: green; margin: 0 auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                    <h2 style="margin-top: 20px; font-size: 24px; color: #333;">Payment Successful!</h2>
-                    <p style="color: #666; margin-top: 10px;">Your order has been placed.</p>
+                    <h2 style="margin-top: 20px; font-size: 24px; color: #333;">Order Placed!</h2>
+                    <p style="color: #666; margin-top: 10px;">A confirmation email has been sent to <b>${formData.email}</b>.</p>
+                    ${responseData.accountCreated ? `<div style="margin-top:15px; padding: 10px; background: #f0fdf4; color: #166534; border-radius: 5px; font-size: 14px;">An account has been created for you.<br/>Password: Your Mobile Number</div>` : ''}
                 </div>
             </div>
         `;
@@ -169,9 +174,10 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             if (user) {
                 navigate('/dashboard');
             } else {
+                // If guest, maybe redirect to login or home
                 navigate('/');
             }
-        }, 3000);
+        }, 4000);
 
       } catch (error: any) {
           console.error('Order placement error:', error);
@@ -200,15 +206,17 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
     <div className="flex flex-col min-h-screen bg-gray-50">
       <Header user={user} logout={logout} />
       <main className="flex-grow container mx-auto px-4 py-8 sm:py-12">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 text-center sm:text-left">Checkout</h1>
-        {/* ... Existing Checkout UI ... */}
+        <div className="text-center sm:text-left mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Checkout</h1>
+            {!user && <p className="text-sm text-gray-500 mt-1">Checking out as Guest. An account will be created for you automatically.</p>}
+        </div>
+        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           
           {/* Shipping Form */}
           <div className="order-2 lg:order-1">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Shipping Information</h2>
             <form id="checkout-form" onSubmit={handleRazorpayPayment} className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-              {/* ... Form Inputs (First Name, Last Name, Email, etc) same as before ... */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">First Name</label>
@@ -226,7 +234,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Phone Number</label>
-                    <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-pink-500 focus:border-pink-500 transition-colors" placeholder="+91..." />
+                    <input type="tel" name="phone" required value={formData.phone} onChange={handleInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-pink-500 focus:border-pink-500 transition-colors" placeholder="Required for password" />
                   </div>
               </div>
               <div>

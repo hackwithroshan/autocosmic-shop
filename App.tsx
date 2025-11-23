@@ -99,7 +99,7 @@ const App: React.FC = () => {
             <Route path="/cart" element={<CartPage user={user} logout={handleLogout} />} />
             <Route 
               path="/checkout" 
-              element={user ? <CheckoutPage user={user} logout={handleLogout} /> : <Navigate to="/login" />} 
+              element={<CheckoutPage user={user} logout={handleLogout} />} 
             />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

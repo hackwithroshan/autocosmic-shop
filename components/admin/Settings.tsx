@@ -14,12 +14,8 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
 
     useEffect(() => {
         // Calculate Feed URL based on current window location (frontend) but pointing to API
-        // Assuming relative proxy setup '/api' works
         const protocol = window.location.protocol;
         const host = window.location.host;
-        // In dev it might be localhost:3000, but api is on 5001. 
-        // In prod via vercel rewrite it is same host.
-        // To be safe for copy-paste, let's assume the user knows their backend URL or we construct relative to current origin if using proxy.
         setFeedUrl(`${protocol}//${host}/api/feed/facebook.csv`);
 
         const fetchSiteSettings = async () => {
@@ -152,8 +148,30 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
                         </div>
                     </div>
                  );
+            case 'site': // Reusing 'site' tab or creating a new General one if needed, here mixed logic for simplicity
             default:
-                 return <div className="p-4">Select a setting category</div>;
+                 return (
+                    <div className="bg-white p-6 rounded-lg shadow-md max-w-3xl">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">General Site Settings</h3>
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg border">
+                                <div>
+                                    <h4 className="font-medium text-gray-900">Homepage Video Autoplay</h4>
+                                    <p className="text-xs text-gray-500">Automatically play 'Shop from Video' reels without sound.</p>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" name="videoAutoplay" checked={siteSettings.videoAutoplay || false} onChange={handleChange} className="sr-only peer" />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Store Currency</label>
+                                <input type="text" name="currency" value={siteSettings.currency || 'INR'} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2" />
+                            </div>
+                            <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-md">Save General Settings</button>
+                        </div>
+                    </div>
+                 );
         }
     };
 
@@ -163,6 +181,7 @@ const Settings: React.FC<{token: string | null}> = ({token}) => {
              <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg w-fit overflow-x-auto">
                 <TabButton id="header" label="Header & Menu" />
                 <TabButton id="footer" label="Footer" />
+                <TabButton id="site" label="General & Media" />
                 <TabButton id="tax" label="Taxes" />
                 <TabButton id="shipping" label="Shipping" />
                 <TabButton id="pixels" label="Tracking Pixels" />

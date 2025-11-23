@@ -13,13 +13,22 @@ const UserSchema = new mongoose.Schema({
     default: 'User'
   },
   avatarUrl: { type: String, default: 'https://i.pravatar.cc/300' },
+  
+  // Fields for Password Reset
+  resetPasswordOtp: { type: String },
+  resetPasswordExpires: { type: Date }
 });
 
 // To use the 'id' virtual field provided by Mongoose instead of '_id'
 UserSchema.set('toJSON', {
   virtuals: true,
   versionKey: false,
-  transform: function (doc, ret) { delete ret._id; delete ret.password }
+  transform: function (doc, ret) { 
+    delete ret._id; 
+    delete ret.password; 
+    delete ret.resetPasswordOtp; // Do not expose OTP
+    delete ret.resetPasswordExpires;
+  }
 });
 
 // Pre-save middleware to set isAdmin based on role for backward compatibility

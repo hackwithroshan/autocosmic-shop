@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -29,6 +29,8 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
   
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
+  const [videoAutoplay, setVideoAutoplay] = useState(false);
   const navigate = useNavigate();
 
   const prevSlide = () => {
@@ -49,12 +51,13 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [prodRes, slideRes, collRes, vidRes, revRes] = await Promise.all([
+        const [prodRes, slideRes, collRes, vidRes, revRes, settingsRes] = await Promise.all([
           fetch('/api/products'),
           fetch('/api/slides'),
           fetch('/api/collections'),
           fetch('/api/content/videos'),
-          fetch('/api/content/testimonials')
+          fetch('/api/content/testimonials'),
+          fetch('/api/settings/site')
         ]);
         
         if (prodRes.ok) setProducts(await prodRes.json());
@@ -62,6 +65,11 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
         if (collRes.ok) setCollections(await collRes.json());
         if (vidRes.ok) setVideos(await vidRes.json());
         if (revRes.ok) setTestimonials(await revRes.json());
+        
+        if (settingsRes.ok) {
+            const settings = await settingsRes.json();
+            setVideoAutoplay(settings.videoAutoplay || false);
+        }
 
       } catch (err) {
         console.error(err);
@@ -77,8 +85,72 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
     navigate(`/product/${id}`);
   };
 
+  const handleVideoShop = (link?: string) => {
+      if (!link) return;
+      // If link starts with http, open in new tab, else navigate
+      if (link.startsWith('http')) {
+          window.open(link, '_blank');
+      } else {
+          // Check if it's just an ID or a path
+          const target = link.startsWith('/') ? link : `/product/${link}`;
+          navigate(target);
+      }
+      setSelectedVideo(null);
+  };
+
   const newArrivals = products.slice(0, 4);
   const bestSellers = products.length > 4 ? products.slice(4, 8) : products.slice(0, 4);
+
+  // Video Component for List (Handles Autoplay/Mute)
+  const VideoListItem = ({ video, autoplay, onClick }: { video: any, autoplay: boolean, onClick: () => void }) => {
+      const videoRef = useRef<HTMLVideoElement>(null);
+
+      useEffect(() => {
+          if (autoplay && videoRef.current) {
+              videoRef.current.play().catch(e => console.log("Autoplay prevented:", e));
+          } else if (videoRef.current) {
+              videoRef.current.pause();
+          }
+      }, [autoplay]);
+
+      return (
+        <div 
+            onClick={onClick}
+            className="relative flex-shrink-0 w-64 sm:w-auto aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer shadow-lg transition-transform transform hover:scale-105"
+        >
+            {autoplay ? (
+                <video 
+                    ref={videoRef}
+                    src={video.videoUrl}
+                    muted 
+                    loop 
+                    playsInline 
+                    className="w-full h-full object-cover"
+                />
+            ) : (
+                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/>
+            )}
+            
+            {/* Overlays */}
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
+            {!autoplay && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/50 group-hover:scale-110 transition-transform">
+                        <PlayIcon className="h-5 w-5 text-white ml-1"/>
+                    </div>
+                </div>
+            )}
+            
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
+                <h4 className="font-bold text-lg truncate">{video.title}</h4>
+                <div className="flex justify-between items-center mt-2">
+                    <span className="font-medium">{video.price}</span>
+                    <button className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors">Shop</button>
+                </div>
+            </div>
+        </div>
+      );
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-white">
@@ -176,24 +248,14 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
         {videos.length > 0 && (
             <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
                 <h2 className="text-3xl font-serif font-bold text-gray-900 text-center mb-10">Shop From Video</h2>
-                <div className="flex overflow-x-auto pb-4 gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-hidden">
+                <div className="flex overflow-x-auto pb-4 gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:overflow-hidden scrollbar-hide">
                     {videos.map((video) => (
-                        <div key={video._id} className="relative flex-shrink-0 w-64 sm:w-auto aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer shadow-lg">
-                            <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/>
-                            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-12 h-12 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/50 group-hover:scale-110 transition-transform">
-                                    <PlayIcon className="h-5 w-5 text-white ml-1"/>
-                                </div>
-                            </div>
-                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
-                                <h4 className="font-bold text-lg">{video.title}</h4>
-                                <div className="flex justify-between items-center mt-2">
-                                    <span className="font-medium">{video.price}</span>
-                                    <button className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors">Shop</button>
-                                </div>
-                            </div>
-                        </div>
+                        <VideoListItem 
+                            key={video._id} 
+                            video={video} 
+                            autoplay={videoAutoplay} 
+                            onClick={() => setSelectedVideo(video)} 
+                        />
                     ))}
                 </div>
             </div>
@@ -251,6 +313,54 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
                 </div>
             </div>
         </div>
+
+        {/* --- Full Screen Video Modal --- */}
+        {selectedVideo && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-fade-in">
+                <div className="absolute inset-0" onClick={() => setSelectedVideo(null)}></div>
+                
+                <div className="relative w-full max-w-md h-[85vh] bg-black rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+                    <button 
+                        onClick={() => setSelectedVideo(null)} 
+                        className="absolute top-4 right-4 z-20 text-white bg-black/40 hover:bg-black/60 rounded-full p-2 transition-colors backdrop-blur-md"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    
+                    <video 
+                        src={selectedVideo.videoUrl} 
+                        className="w-full h-full object-cover" 
+                        autoPlay 
+                        playsInline 
+                        loop
+                        onClick={(e) => {
+                            const v = e.target as HTMLVideoElement;
+                            v.paused ? v.play() : v.pause();
+                        }}
+                    />
+                    
+                    {/* Overlay Content */}
+                    <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-20 pointer-events-none">
+                        <div className="pointer-events-auto">
+                            <h3 className="text-white font-bold text-2xl mb-1 drop-shadow-md">{selectedVideo.title}</h3>
+                            <p className="text-white/90 font-medium text-xl mb-6 drop-shadow-sm">{selectedVideo.price}</p>
+                            
+                            <button 
+                                onClick={() => handleVideoShop(selectedVideo.productLink)}
+                                className="w-full bg-white text-black font-bold py-4 rounded-full hover:bg-gray-100 transition-transform transform active:scale-95 flex items-center justify-center gap-2 shadow-lg"
+                            >
+                                <span>View Product</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
 
       </main>
       <Footer />

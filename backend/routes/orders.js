@@ -2,8 +2,11 @@
 const express = require('express');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const User = require('../models/User'); // Import User model
 const authMiddleware = require('../middleware/authMiddleware');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs'); // Import bcrypt for password hashing
+const { sendOrderConfirmation } = require('../utils/emailService'); // Import email service
 const router = express.Router();
 
 // Initialize Razorpay
@@ -55,6 +58,30 @@ router.put('/:id', authMiddleware(true), async (req, res) => {
     }
 });
 
+// Resend Order Email (Admin Only)
+router.post('/:id/resend-email', authMiddleware(true), async (req, res) => {
+    try {
+        // Fetch order with populated product details for the invoice
+        const order = await Order.findById(req.params.id).populate('items.productId', 'name imageUrl price sku');
+        
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found' });
+        }
+
+        // Send the email (await it to catch errors)
+        // Capture the result which might contain the preview URL for test accounts
+        const result = await sendOrderConfirmation(order);
+
+        res.json({ 
+            message: `Email sent successfully to ${order.customerEmail}`,
+            previewUrl: result?.previewUrl // Pass this back to frontend
+        });
+    } catch (err) {
+        console.error("Resend email error:", err);
+        res.status(500).json({ message: 'Failed to send email', error: err.message });
+    }
+});
+
 // Get orders for the logged-in user
 router.get('/my-orders', authMiddleware(), async (req, res) => {
   try {
@@ -100,7 +127,7 @@ router.post('/razorpay-order', async (req, res) => {
     }
 });
 
-// 2. Create/Save Order (Post-payment Verification)
+// 2. Create/Save Order (Post-payment Verification) & Guest Checkout Handling
 router.post('/', async (req, res) => {
   const { items, total, customerName, customerEmail, customerPhone, shippingAddress, userId, paymentInfo } = req.body;
 
@@ -127,9 +154,44 @@ router.post('/', async (req, res) => {
       }
   }
 
+  let finalUserId = userId;
+  let accountCreated = false;
+  let passwordUsed = null;
+
   try {
+    // --- Automatic Account Creation Logic ---
+    // If user was not logged in (no userId), check if email exists.
+    if (!finalUserId && customerEmail) {
+        let user = await User.findOne({ email: customerEmail });
+        
+        if (!user) {
+            // Create new user
+            // Default password is the mobile number provided
+            if (customerPhone) {
+                passwordUsed = customerPhone;
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash(passwordUsed, salt);
+
+                user = new User({
+                    name: customerName,
+                    email: customerEmail,
+                    password: hashedPassword,
+                    role: 'User'
+                });
+
+                await user.save();
+                finalUserId = user._id;
+                accountCreated = true;
+                console.log(`Auto-created account for ${customerEmail}`);
+            }
+        } else {
+            // Link to existing user
+            finalUserId = user._id;
+        }
+    }
+
     const newOrder = new Order({
-      userId: userId || null,
+      userId: finalUserId || null,
       customerName,
       customerEmail,
       customerPhone,
@@ -144,7 +206,16 @@ router.post('/', async (req, res) => {
     });
 
     const savedOrder = await newOrder.save();
-    res.status(201).json(savedOrder);
+
+    // Send Email Async (Don't block response)
+    // We pass the passwordUsed only if we just created the account so we can tell them in the email.
+    sendOrderConfirmation(savedOrder, accountCreated ? passwordUsed : null);
+
+    res.status(201).json({ 
+        ...savedOrder.toJSON(), 
+        accountCreated: accountCreated 
+    });
+
   } catch (err) {
     console.error("Error creating order:", err);
     res.status(500).json({ message: 'Failed to create order' });
