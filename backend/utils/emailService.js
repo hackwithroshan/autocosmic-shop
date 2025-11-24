@@ -1,100 +1,23 @@
 
+const { Resend } = require('resend');
 const fs = require('fs');
 const path = require('path');
 
-let nodemailer;
 let PDFDocument;
-
-// Robust Module Loading
-try {
-    nodemailer = require('nodemailer');
-} catch (e) {
-    console.error("❌ CRITICAL: 'nodemailer' module is missing. Emails will NOT work.");
-}
-
 try {
     PDFDocument = require('pdfkit');
 } catch (e) {
     console.error("❌ CRITICAL: 'pdfkit' module is missing. PDF Invoices will NOT work.");
 }
 
-let transporter = null;
+// Initialize Resend with your API Key
+// NOTE: Ideally put this in process.env.RESEND_API_KEY
+const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_j1yD2n3u_E93K8Y4cJc1J4JUb144HnPNv';
+const resend = new Resend(RESEND_API_KEY);
 
-// Initialize Transporter
-const initTransporter = async () => {
-    if (!nodemailer) return null;
-    
-    // Get Credentials from Environment
-    const host = process.env.EMAIL_HOST || 'smtp.hostinger.com';
-    let port = parseInt(process.env.EMAIL_PORT || 587);
-    const user = process.env.EMAIL_USER || 'noreply@apexnucleus.com'; 
-    const pass = process.env.EMAIL_PASS || 'Roshan@$9315';
-
-    // --- Hostinger Optimization ---
-    // Hostinger works BEST on Port 465 (SSL) from cloud environments like Railway.
-    // If the host is Hostinger and port isn't explicitly forced to 587 by env var, default to 465.
-    if (host.includes('hostinger') && !process.env.EMAIL_PORT) {
-        console.log("🚀 Auto-optimizing for Hostinger: Switching to Port 465 (SSL)");
-        port = 465;
-    }
-
-    const isSecure = port === 465;
-
-    console.log("---------------------------------------------------");
-    console.log("📧 Initializing Email Service...");
-    console.log(`   Host: ${host}`);
-    console.log(`   Port: ${port}`);
-    console.log(`   User: ${user}`);
-    console.log(`   Secure: ${isSecure}`);
-    console.log("---------------------------------------------------");
-
-    if (!user || !pass) {
-        console.error("❌ EMAIL ERROR: SMTP Credentials missing.");
-        return null;
-    }
-
-    try {
-        transporter = nodemailer.createTransport({
-            host: host,
-            port: port,
-            secure: isSecure, // true for 465, false for other ports
-            auth: {
-                user: user,
-                pass: pass,
-            },
-            // --- Critical Timeouts for Railway ---
-            connectionTimeout: 10000, // 10 seconds (Fail fast if blocked)
-            greetingTimeout: 10000,   // 10 seconds
-            socketTimeout: 20000,     // 20 seconds
-            
-            // --- Security & Debug ---
-            logger: true, 
-            debug: true,  
-            tls: {
-                // Do not fail on invalid certs
-                rejectUnauthorized: false, 
-                ciphers: 'SSLv3'
-            }
-        });
-
-        // Verify connection configuration
-        await transporter.verify();
-        console.log("✅ SMTP Connection Verified Successfully.");
-        return transporter;
-
-    } catch (e) {
-        console.error("❌ SMTP Connection FAILED!");
-        console.error("   Error Detail:", e);
-        
-        if (e.code === 'ETIMEDOUT') {
-            console.error(`⚠️ TIMEOUT: The server could not connect to ${host}:${port}.`);
-            console.error("   SUGGESTION: Ensure 'EMAIL_PORT' is set to 465 in Railway Variables for Hostinger.");
-        }
-        
-        transporter = null;
-        return null;
-    }
-};
+// Configuration for Sender
+// In Resend Free Tier, you MUST use 'onboarding@resend.dev' unless you verify a domain.
+const SENDER_EMAIL = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
 
 // Helper: Generate PDF Invoice Buffer
 const generateInvoicePDF = (order) => {
@@ -170,23 +93,15 @@ const generateInvoicePDF = (order) => {
 
 // --- Function: Send Order Confirmation ---
 const sendOrderConfirmation = async (order, accountPassword = null) => {
-    const mailer = await initTransporter();
-    if (!mailer) {
-        return { success: false, error: "Email configuration missing or connection failed." };
-    }
-
-    // STRICT SENDER MATCHING
-    const senderEmail = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
-
     try {
-        console.log(`🔄 Attempting to send email to: ${order.customerEmail}`);
+        console.log(`🔄 Generating Invoice for: ${order.customerEmail}`);
         const pdfBuffer = await generateInvoicePDF(order);
+        
         const attachments = [];
         if (pdfBuffer) {
             attachments.push({
                 filename: `Invoice-${order._id}.pdf`,
                 content: pdfBuffer,
-                contentType: 'application/pdf'
             });
         }
 
@@ -217,34 +132,35 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
             </div>
         `;
 
-        const info = await mailer.sendMail({
-            from: `"Ladies Smart Choice" <${senderEmail}>`, 
-            to: order.customerEmail,
+        console.log(`📤 Sending email via Resend to: ${order.customerEmail}`);
+        
+        const { data, error } = await resend.emails.send({
+            from: SENDER_EMAIL,
+            to: order.customerEmail, // NOTE: In Resend Free Tier, this must be your verified email
             subject: subject,
             html: html,
             attachments: attachments
         });
 
-        console.log(`✅ SUCCESS: Email accepted by SMTP server.`);
-        console.log(`   Message ID: ${info.messageId}`);
-        return { success: true, messageId: info.messageId };
+        if (error) {
+            console.error("❌ Resend Error:", error);
+            return { success: false, error: error };
+        }
+
+        console.log(`✅ Email Sent Successfully! ID: ${data.id}`);
+        return { success: true, messageId: data.id };
 
     } catch (error) {
-        console.error("❌ FAILED to send Order Email:", error);
+        console.error("❌ Unexpected Email Error:", error);
         return { success: false, error: error.message };
     }
 };
 
 // --- Function: Send Welcome Email ---
 const sendWelcomeEmail = async (user) => {
-    const mailer = await initTransporter();
-    if (!mailer) return;
-
-    const senderEmail = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
-
     try {
-        const info = await mailer.sendMail({
-            from: `"Ladies Smart Choice" <${senderEmail}>`,
+        const { data, error } = await resend.emails.send({
+            from: SENDER_EMAIL,
             to: user.email,
             subject: "Welcome to the Family!",
             html: `
@@ -258,8 +174,10 @@ const sendWelcomeEmail = async (user) => {
             `
         });
 
-        console.log(`✅ Welcome Email SENT to ${user.email}. ID: ${info.messageId}`);
-        return { success: true };
+        if (error) console.error("❌ Resend Welcome Error:", error);
+        else console.log(`✅ Welcome Email Sent: ${data.id}`);
+        
+        return { success: !error };
     } catch (error) {
         console.error("❌ Failed to send Welcome Email:", error);
     }
@@ -267,17 +185,9 @@ const sendWelcomeEmail = async (user) => {
 
 // --- Function: Send Password Reset OTP ---
 const sendPasswordResetEmail = async (email, otp) => {
-    const mailer = await initTransporter();
-    if (!mailer) {
-        console.error("❌ Cannot send OTP: Transporter failed to initialize.");
-        return { success: false };
-    }
-
-    const senderEmail = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
-
     try {
-        const info = await mailer.sendMail({
-            from: `"Ladies Smart Choice" <${senderEmail}>`,
+        const { data, error } = await resend.emails.send({
+            from: SENDER_EMAIL,
             to: email,
             subject: "Reset Your Password - OTP",
             html: `
@@ -293,7 +203,12 @@ const sendPasswordResetEmail = async (email, otp) => {
             `
         });
 
-        console.log(`✅ OTP Email SENT to ${email}. ID: ${info.messageId}`);
+        if (error) {
+            console.error("❌ Resend OTP Error:", error);
+            return { success: false, error };
+        }
+        
+        console.log(`✅ OTP Email Sent: ${data.id}`);
         return { success: true };
     } catch (error) {
         console.error("❌ Failed to send OTP Email:", error);
