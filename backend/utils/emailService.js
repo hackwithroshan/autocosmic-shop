@@ -20,24 +20,31 @@ try {
 
 let transporter = null;
 
-// Initialize Transporter (STRICTLY REAL SMTP - NO TEST MAIL)
+// Initialize Transporter
 const initTransporter = async () => {
     if (!nodemailer) return null;
     
-    if (transporter) return transporter;
+    // Always recreate transporter to ensure latest config is used or to retry connection
+    // if (transporter) return transporter; 
 
     // Get Credentials from Environment
-    // Note: On Railway, you MUST add these in the "Variables" tab.
     const host = process.env.EMAIL_HOST || 'smtp.hostinger.com';
-    const port = process.env.EMAIL_PORT || 465;
+    let port = parseInt(process.env.EMAIL_PORT || 587);
     const user = process.env.EMAIL_USER || 'noreply@apexnucleus.com'; 
     const pass = process.env.EMAIL_PASS || 'Roshan@$9315';
+
+    // --- Hostinger Specific Fix ---
+    // If port is 465, it requires secure: true.
+    // If port is 587, it requires secure: false (STARTTLS).
+    // Note: Hostinger often works better on 587 from Cloud Servers (Railway) due to timeouts on 465.
+    const isSecure = port === 465;
 
     console.log("---------------------------------------------------");
     console.log("📧 Initializing Email Service...");
     console.log(`   Host: ${host}`);
     console.log(`   Port: ${port}`);
     console.log(`   User: ${user}`);
+    console.log(`   Secure: ${isSecure}`);
     console.log("---------------------------------------------------");
 
     if (!user || !pass) {
@@ -48,23 +55,22 @@ const initTransporter = async () => {
     try {
         transporter = nodemailer.createTransport({
             host: host,
-            port: parseInt(port),
-            secure: parseInt(port) === 465, // True for 465 (SSL)
+            port: port,
+            secure: isSecure, 
             auth: {
                 user: user,
                 pass: pass,
             },
-            // --- DEBUG SETTINGS (To fix delivery issues) ---
-            logger: true, // Log to console
-            debug: true,  // Include SMTP traffic in logs
-            // -----------------------------------------------
+            // --- DEBUG & TIMEOUT SETTINGS ---
+            logger: true, 
+            debug: true,  
             tls: {
-                // Sometimes helpful if server certificate has issues, though Hostinger is usually fine
-                rejectUnauthorized: false 
+                rejectUnauthorized: false, // Helps with some certificate chains
+                ciphers: 'SSLv3' // Compatibility mode
             },
-            connectionTimeout: 20000, // 20 seconds
-            greetingTimeout: 20000,
-            socketTimeout: 20000,
+            connectionTimeout: 30000, // Increased to 30s
+            greetingTimeout: 30000,
+            socketTimeout: 30000,
         });
 
         // Verify connection configuration
@@ -75,6 +81,11 @@ const initTransporter = async () => {
     } catch (e) {
         console.error("❌ SMTP Connection FAILED!");
         console.error("   Error Detail:", e);
+        
+        if (e.code === 'ETIMEDOUT' && port === 465) {
+            console.error("⚠️ SUGGESTION: Port 465 timed out. Please change EMAIL_PORT to 587 in Railway Variables.");
+        }
+        
         transporter = null;
         return null;
     }
@@ -159,7 +170,7 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
         return { success: false, error: "Email configuration missing or connection failed." };
     }
 
-    // STRICT SENDER MATCHING: Hostinger rejects if 'from' differs from authenticated user
+    // STRICT SENDER MATCHING
     const senderEmail = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
 
     try {
@@ -201,7 +212,6 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
             </div>
         `;
 
-        // Use specific "Ladies Smart Choice" name but strictly the authenticated email
         const info = await mailer.sendMail({
             from: `"Ladies Smart Choice" <${senderEmail}>`, 
             to: order.customerEmail,
@@ -212,7 +222,6 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
 
         console.log(`✅ SUCCESS: Email accepted by SMTP server.`);
         console.log(`   Message ID: ${info.messageId}`);
-        console.log(`   Response: ${info.response}`);
         return { success: true, messageId: info.messageId };
 
     } catch (error) {
