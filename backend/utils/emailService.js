@@ -10,66 +10,80 @@ try {
     nodemailer = require('nodemailer');
 } catch (e) {
     console.error("❌ CRITICAL: 'nodemailer' module is missing. Emails will NOT work.");
-    console.error("👉 Run this command in your backend folder: npm install nodemailer");
 }
 
 try {
     PDFDocument = require('pdfkit');
 } catch (e) {
     console.error("❌ CRITICAL: 'pdfkit' module is missing. PDF Invoices will NOT work.");
-    console.error("👉 Run this command in your backend folder: npm install pdfkit");
 }
 
 let transporter = null;
 
-// Initialize Transporter (Real SMTP Only)
+// Initialize Transporter (STRICTLY REAL SMTP - NO TEST MAIL)
 const initTransporter = async () => {
     if (!nodemailer) return null;
     
     if (transporter) return transporter;
 
-    // 1. Get Credentials from Environment (Prioritize EMAIL_ prefix as per user config)
-    const host = process.env.EMAIL_HOST || process.env.SMTP_HOST;
-    const port = process.env.EMAIL_PORT || process.env.SMTP_PORT;
-    const user = process.env.EMAIL_USER || process.env.SMTP_USER;
-    const pass = process.env.EMAIL_PASS || process.env.SMTP_PASS;
+    // Get Credentials from Environment
+    // Note: On Railway, you MUST add these in the "Variables" tab.
+    const host = process.env.EMAIL_HOST || 'smtp.hostinger.com';
+    const port = process.env.EMAIL_PORT || 465;
+    const user = process.env.EMAIL_USER || 'noreply@apexnucleus.com'; 
+    const pass = process.env.EMAIL_PASS || 'Roshan@$9315';
 
-    if (user && pass) {
-        try {
-            console.log(`🔌 Connecting to Email Server: ${host}:${port} as ${user}...`);
-            
-            transporter = nodemailer.createTransport({
-                host: host,
-                port: parseInt(port || '465'),
-                secure: parseInt(port || '465') === 465, // True for 465 (SSL), false for 587 (TLS)
-                auth: {
-                    user: user,
-                    pass: pass,
-                },
-            });
+    console.log("---------------------------------------------------");
+    console.log("📧 Initializing Email Service...");
+    console.log(`   Host: ${host}`);
+    console.log(`   Port: ${port}`);
+    console.log(`   User: ${user}`);
+    console.log("---------------------------------------------------");
 
-            // Verify connection configuration
-            await transporter.verify();
-            console.log("✅ Email Service: Connected to Real SMTP Server Successfully.");
-        } catch (e) {
-            console.error("❌ Email Service: Real SMTP Connection Failed.");
-            console.error("   Error Details:", e.message);
-            console.error("   Check your EMAIL_HOST, EMAIL_USER and EMAIL_PASS in .env file.");
-            transporter = null; 
-        }
-    } else {
-        console.error("❌ Email Service: Missing credentials in .env file.");
-        console.error("   Please set EMAIL_HOST, EMAIL_PORT, EMAIL_USER, and EMAIL_PASS.");
+    if (!user || !pass) {
+        console.error("❌ EMAIL ERROR: SMTP Credentials missing.");
+        return null;
     }
-    
-    return transporter;
+
+    try {
+        transporter = nodemailer.createTransport({
+            host: host,
+            port: parseInt(port),
+            secure: parseInt(port) === 465, // True for 465 (SSL)
+            auth: {
+                user: user,
+                pass: pass,
+            },
+            // --- DEBUG SETTINGS (To fix delivery issues) ---
+            logger: true, // Log to console
+            debug: true,  // Include SMTP traffic in logs
+            // -----------------------------------------------
+            tls: {
+                // Sometimes helpful if server certificate has issues, though Hostinger is usually fine
+                rejectUnauthorized: false 
+            },
+            connectionTimeout: 20000, // 20 seconds
+            greetingTimeout: 20000,
+            socketTimeout: 20000,
+        });
+
+        // Verify connection configuration
+        await transporter.verify();
+        console.log("✅ SMTP Connection Verified Successfully.");
+        return transporter;
+
+    } catch (e) {
+        console.error("❌ SMTP Connection FAILED!");
+        console.error("   Error Detail:", e);
+        transporter = null;
+        return null;
+    }
 };
 
 // Helper: Generate PDF Invoice Buffer
 const generateInvoicePDF = (order) => {
     return new Promise((resolve, reject) => {
         if (!PDFDocument) {
-            console.warn("⚠️ Skipping PDF generation: pdfkit not installed.");
             return resolve(null);
         }
 
@@ -89,8 +103,6 @@ const generateInvoicePDF = (order) => {
                .text('INVOICE', 50, 57)
                .fontSize(10)
                .text('Ladies Smart Choice', 200, 50, { align: 'right' })
-               .text('123 Fashion Street', 200, 65, { align: 'right' })
-               .text('Delhi, India', 200, 80, { align: 'right' })
                .moveDown();
 
             doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, 100).lineTo(550, 100).stroke();
@@ -111,7 +123,6 @@ const generateInvoicePDF = (order) => {
             doc.moveDown();
             doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, 200).lineTo(550, 200).stroke();
 
-            let i = 0;
             let position = 220;
             doc.font('Helvetica-Bold').text("Item", 50, position);
             doc.text("Qty", 350, position, { width: 90, align: 'center' });
@@ -122,7 +133,6 @@ const generateInvoicePDF = (order) => {
 
             order.items.forEach(item => {
                 position += 30;
-                // Populate safe check
                 const productName = item.productId && item.productId.name ? item.productId.name : "Product Item";
                 const productPrice = item.productId && item.productId.price ? item.productId.price : 0;
                 
@@ -146,12 +156,14 @@ const generateInvoicePDF = (order) => {
 const sendOrderConfirmation = async (order, accountPassword = null) => {
     const mailer = await initTransporter();
     if (!mailer) {
-        console.error("⚠️ Cannot send order email: Email service not connected.");
-        return { success: false, error: "Transporter not initialized" };
+        return { success: false, error: "Email configuration missing or connection failed." };
     }
 
+    // STRICT SENDER MATCHING: Hostinger rejects if 'from' differs from authenticated user
+    const senderEmail = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
+
     try {
-        console.log(`🔄 Generating invoice for Order #${order._id}...`);
+        console.log(`🔄 Attempting to send email to: ${order.customerEmail}`);
         const pdfBuffer = await generateInvoicePDF(order);
         const attachments = [];
         if (pdfBuffer) {
@@ -162,11 +174,6 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
             });
         }
 
-        // Determine Sender (Must match authenticated user for many hosts)
-        const senderEmail = process.env.EMAIL_USER || process.env.SMTP_USER || 'no-reply@example.com';
-        const senderName = "Ladies Smart Choice";
-
-        // Prepare Email Content
         const subject = `Order Confirmed! #${order._id.toString().substring(0,6).toUpperCase()}`;
         let html = `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
@@ -183,7 +190,7 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
                     <p>We created an account for you to track your order.</p>
                     <p><strong>Username:</strong> ${order.customerEmail}</p>
                     <p><strong>Password:</strong> ${accountPassword}</p>
-                    <a href="https://${process.env.FRONTEND_URL || 'localhost:3000'}/login">Login here</a>
+                    <a href="https://${process.env.FRONTEND_URL || 'apexnucleus.com'}/login">Login here</a>
                 </div>
             `;
         }
@@ -194,20 +201,22 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
             </div>
         `;
 
+        // Use specific "Ladies Smart Choice" name but strictly the authenticated email
         const info = await mailer.sendMail({
-            from: `"${senderName}" <${senderEmail}>`,
+            from: `"Ladies Smart Choice" <${senderEmail}>`, 
             to: order.customerEmail,
             subject: subject,
             html: html,
             attachments: attachments
         });
 
-        console.log(`✅ Order Email sent to ${order.customerEmail}. Message ID: ${info.messageId}`);
-        
+        console.log(`✅ SUCCESS: Email accepted by SMTP server.`);
+        console.log(`   Message ID: ${info.messageId}`);
+        console.log(`   Response: ${info.response}`);
         return { success: true, messageId: info.messageId };
 
     } catch (error) {
-        console.error("❌ Error sending order email:", error);
+        console.error("❌ FAILED to send Order Email:", error);
         return { success: false, error: error.message };
     }
 };
@@ -217,7 +226,7 @@ const sendWelcomeEmail = async (user) => {
     const mailer = await initTransporter();
     if (!mailer) return;
 
-    const senderEmail = process.env.EMAIL_USER || process.env.SMTP_USER || 'no-reply@example.com';
+    const senderEmail = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
 
     try {
         const info = await mailer.sendMail({
@@ -230,15 +239,15 @@ const sendWelcomeEmail = async (user) => {
                     <p>We are thrilled to have you with us.</p>
                     <p>Discover the latest trends in women's fashion.</p>
                     <br/>
-                    <a href="https://${process.env.FRONTEND_URL || 'localhost:3000'}" style="background: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Start Shopping</a>
+                    <a href="https://${process.env.FRONTEND_URL || 'apexnucleus.com'}" style="background: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Start Shopping</a>
                 </div>
             `
         });
 
-        console.log(`✅ Welcome Email sent to ${user.email}.`);
+        console.log(`✅ Welcome Email SENT to ${user.email}. ID: ${info.messageId}`);
         return { success: true };
     } catch (error) {
-        console.error("❌ Error sending welcome email:", error);
+        console.error("❌ Failed to send Welcome Email:", error);
     }
 };
 
@@ -246,11 +255,11 @@ const sendWelcomeEmail = async (user) => {
 const sendPasswordResetEmail = async (email, otp) => {
     const mailer = await initTransporter();
     if (!mailer) {
-        console.error("⚠️ Cannot send OTP: Email service not connected.");
-        return { success: false, error: "Email service unavailable" };
+        console.error("❌ Cannot send OTP: Transporter failed to initialize.");
+        return { success: false };
     }
 
-    const senderEmail = process.env.EMAIL_USER || process.env.SMTP_USER || 'no-reply@example.com';
+    const senderEmail = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
 
     try {
         const info = await mailer.sendMail({
@@ -270,10 +279,10 @@ const sendPasswordResetEmail = async (email, otp) => {
             `
         });
 
-        console.log(`✅ OTP Email sent to ${email}.`);
+        console.log(`✅ OTP Email SENT to ${email}. ID: ${info.messageId}`);
         return { success: true };
     } catch (error) {
-        console.error("❌ Error sending OTP email:", error);
+        console.error("❌ Failed to send OTP Email:", error);
         throw error;
     }
 };
