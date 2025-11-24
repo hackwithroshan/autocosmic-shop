@@ -24,19 +24,20 @@ let transporter = null;
 const initTransporter = async () => {
     if (!nodemailer) return null;
     
-    // Always recreate transporter to ensure latest config is used or to retry connection
-    // if (transporter) return transporter; 
-
     // Get Credentials from Environment
     const host = process.env.EMAIL_HOST || 'smtp.hostinger.com';
     let port = parseInt(process.env.EMAIL_PORT || 587);
     const user = process.env.EMAIL_USER || 'noreply@apexnucleus.com'; 
     const pass = process.env.EMAIL_PASS || 'Roshan@$9315';
 
-    // --- Hostinger Specific Fix ---
-    // If port is 465, it requires secure: true.
-    // If port is 587, it requires secure: false (STARTTLS).
-    // Note: Hostinger often works better on 587 from Cloud Servers (Railway) due to timeouts on 465.
+    // --- Hostinger Optimization ---
+    // Hostinger works BEST on Port 465 (SSL) from cloud environments like Railway.
+    // If the host is Hostinger and port isn't explicitly forced to 587 by env var, default to 465.
+    if (host.includes('hostinger') && !process.env.EMAIL_PORT) {
+        console.log("🚀 Auto-optimizing for Hostinger: Switching to Port 465 (SSL)");
+        port = 465;
+    }
+
     const isSecure = port === 465;
 
     console.log("---------------------------------------------------");
@@ -56,21 +57,24 @@ const initTransporter = async () => {
         transporter = nodemailer.createTransport({
             host: host,
             port: port,
-            secure: isSecure, 
+            secure: isSecure, // true for 465, false for other ports
             auth: {
                 user: user,
                 pass: pass,
             },
-            // --- DEBUG & TIMEOUT SETTINGS ---
+            // --- Critical Timeouts for Railway ---
+            connectionTimeout: 10000, // 10 seconds (Fail fast if blocked)
+            greetingTimeout: 10000,   // 10 seconds
+            socketTimeout: 20000,     // 20 seconds
+            
+            // --- Security & Debug ---
             logger: true, 
             debug: true,  
             tls: {
-                rejectUnauthorized: false, // Helps with some certificate chains
-                ciphers: 'SSLv3' // Compatibility mode
-            },
-            connectionTimeout: 30000, // Increased to 30s
-            greetingTimeout: 30000,
-            socketTimeout: 30000,
+                // Do not fail on invalid certs
+                rejectUnauthorized: false, 
+                ciphers: 'SSLv3'
+            }
         });
 
         // Verify connection configuration
@@ -82,8 +86,9 @@ const initTransporter = async () => {
         console.error("❌ SMTP Connection FAILED!");
         console.error("   Error Detail:", e);
         
-        if (e.code === 'ETIMEDOUT' && port === 465) {
-            console.error("⚠️ SUGGESTION: Port 465 timed out. Please change EMAIL_PORT to 587 in Railway Variables.");
+        if (e.code === 'ETIMEDOUT') {
+            console.error(`⚠️ TIMEOUT: The server could not connect to ${host}:${port}.`);
+            console.error("   SUGGESTION: Ensure 'EMAIL_PORT' is set to 465 in Railway Variables for Hostinger.");
         }
         
         transporter = null;
