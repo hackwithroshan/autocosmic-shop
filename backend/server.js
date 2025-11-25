@@ -18,7 +18,7 @@ const pageRoutes = require('./routes/pages');
 const contentRoutes = require('./routes/content');
 const collectionRoutes = require('./routes/collections');
 const feedRoutes = require('./routes/feed'); 
-const emailRoutes = require('./routes/email'); // Import Email Route
+// const emailRoutes = require('./routes/email'); // MOVED TO VERCEL - Disabled on Railway to prevent conflicts
 const seedDatabase = require('./seed');
 
 const app = express();
@@ -43,6 +43,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- HEALTH CHECK (Must be first) ---
+app.get('/', (req, res) => {
+  res.status(200).send('AutoCosmic Backend Server is Running. Access API at /api');
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Backend is reachable' });
+});
+
+// --- Database Connection ---
 const MONGO_URI = process.env.MONGO_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/autocosmic';
 
 const connectDB = async () => {
@@ -59,14 +69,6 @@ const connectDB = async () => {
 connectDB();
 
 // --- API Routes ---
-app.get('/', (req, res) => {
-  res.send('AutoCosmic Backend Server is Running. Access API at /api');
-});
-
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Backend is reachable' });
-});
-
 app.get('/api/seed', async (req, res) => {
     try {
         await seedDatabase();
@@ -90,7 +92,7 @@ app.use('/api/pages', pageRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/feed', feedRoutes);
-app.use('/api/send-email', emailRoutes); // Use Email Route
+// app.use('/api/send-email', emailRoutes); // Disabled - Vercel handles this now
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

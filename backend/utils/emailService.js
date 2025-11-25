@@ -1,4 +1,7 @@
 
+// Use node-fetch for compatibility if global fetch is missing (Node < 18)
+const fetch = global.fetch || require('node-fetch');
+
 const triggerEmailAPI = async (payload) => {
     try {
         // Frontend URL from Railway Environment Variables
@@ -6,7 +9,6 @@ const triggerEmailAPI = async (payload) => {
         
         if (!frontendUrl) {
             console.error("❌ EMAIL CRITICAL: 'FRONTEND_URL' is missing in Railway variables.");
-            console.error("👉 Add FRONTEND_URL=https://your-app.vercel.app in Railway Settings");
             return { success: false, error: "Configuration Error: FRONTEND_URL missing" };
         }
 
@@ -14,51 +16,36 @@ const triggerEmailAPI = async (payload) => {
         const baseUrl = frontendUrl.replace(/\/$/, '');
         const apiUrl = `${baseUrl}/api/send-email`;
 
-        console.log(`🚀 Attempting to trigger email via Vercel API...`);
-        console.log(`🎯 Target URL: ${apiUrl}`);
+        console.log(`🚀 Triggering Email via Vercel: ${apiUrl}`);
         
-        // Use AbortController for Timeout (10 seconds)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        // Simple timeout logic without AbortController for maximum compatibility
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Email API Timeout')), 10000)
+        );
 
-        try {
-            const response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'User-Agent': 'Railway-Backend' 
-                },
-                body: JSON.stringify(payload),
-                signal: controller.signal
-            });
+        const fetchPromise = fetch(apiUrl, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'User-Agent': 'Railway-Backend' 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
             
-            clearTimeout(timeoutId);
-
-            const contentType = response.headers.get("content-type");
-            
-            if (!response.ok) {
-                const errText = await response.text();
-                console.error(`❌ Vercel API Failed: ${response.status} ${response.statusText}`);
-                console.error(`⚠️ Error Details: ${errText}`);
-                
-                return { success: false, error: `Email API returned ${response.status}: ${errText.substring(0, 100)}` };
-            }
-
-            const data = await response.json();
-            console.log("✅ Vercel Email API Success:", data);
-            return { success: true, data };
-
-        } catch (fetchError) {
-            clearTimeout(timeoutId);
-            if (fetchError.name === 'AbortError') {
-                console.error("❌ Email API Timeout: Vercel function took too long to respond.");
-                return { success: false, error: "Email service timeout. Please try again." };
-            }
-            throw fetchError;
+        if (!response.ok) {
+            const errText = await response.text();
+            console.error(`❌ Vercel API Failed: ${response.status} ${errText.substring(0, 100)}`);
+            return { success: false, error: `Email API returned ${response.status}` };
         }
 
+        const data = await response.json();
+        console.log("✅ Email Sent Successfully");
+        return { success: true, data };
+
     } catch (error) {
-        console.error("❌ EMAIL SERVICE CRASH:", error.message);
+        console.error("❌ EMAIL SERVICE ERROR:", error.message);
         return { success: false, error: error.message };
     }
 };
