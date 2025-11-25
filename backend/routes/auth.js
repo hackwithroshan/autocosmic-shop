@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
-// const { sendWelcomeEmail, sendPasswordResetEmail } = require('../utils/emailService'); // REMOVED: Using Vercel
+const { sendWelcomeEmail, sendPasswordResetEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -39,8 +39,8 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    // NOTE: We removed sendWelcomeEmail(user);
-    // Frontend will handle it.
+    // Send Welcome Email from Backend
+    sendWelcomeEmail(user).catch(err => console.error("Welcome email failed:", err));
 
     const isAdmin = isUserAdmin(user);
 
@@ -120,31 +120,35 @@ router.post('/forgot-password', async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (!user) {
-            // Return 404 so frontend knows not to try sending email
             return res.status(404).json({ message: 'User with this email does not exist' });
         }
 
-        // Generate 6-digit OTP
         const otp = crypto.randomInt(100000, 999999).toString();
         
-        // Set Expiry (10 minutes)
         user.resetPasswordOtp = otp;
         user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
         await user.save();
 
-        // NOTE: We removed sendPasswordResetEmail(email, otp);
-        // Instead, we return the OTP to the client so it can send via Vercel.
-        // WARNING: This exposes OTP to the client, used here per specific architecture requirements.
+        // Send OTP Email
+        console.log(`Attempting to send OTP to ${email}...`);
+        const emailResult = await sendPasswordResetEmail(email, otp);
         
-        res.json({ 
-            message: 'OTP Generated',
-            otp: otp // Sending OTP back to frontend
-        });
+        if (!emailResult.success) {
+            console.error("Email sending failed:", emailResult.error);
+            // 500 error will trigger the "Server error" message on frontend
+            // We pass the specific error so the frontend can potentially show it
+            return res.status(500).json({ 
+                message: 'Failed to send email. Please contact support.', 
+                details: emailResult.error 
+            });
+        }
+        
+        res.json({ message: 'OTP Sent to email' });
 
     } catch (err) {
         console.error("Forgot Password Error:", err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error during password reset' });
     }
 });
 

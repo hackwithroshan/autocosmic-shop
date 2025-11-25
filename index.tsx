@@ -38,11 +38,14 @@ const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
             // 4. Construct the full URL for backend calls
             resource = `${apiUrl}${resource}`;
             
-            // 5. LOGGING
+            // 5. LOGGING (Optional: Enable for debugging)
             // console.log(`[API Proxy] Requesting: ${resource}`);
         } else {
+             // Only warn in production or if not localhost to prevent noise
              if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                console.warn('[API Proxy] VITE_API_URL is MISSING! Requests might fail.');
+                console.error('🚨 [CRITICAL ERROR] VITE_API_URL is missing in Vercel Environment Variables!');
+                console.error('👉 Please add VITE_API_URL in Vercel Settings pointing to your Railway Backend.');
+                console.error('👉 Example: https://your-backend.up.railway.app');
              }
         }
     }

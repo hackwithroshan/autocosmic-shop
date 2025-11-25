@@ -16,15 +16,24 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Forgot Password State
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); // 1 = Email, 2 = OTP & New Password
+  const [forgotStep, setForgotStep] = useState(1); 
   const [forgotEmail, setForgotEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMessage, setForgotMessage] = useState('');
   const [forgotError, setForgotError] = useState('');
+
+  // Helper to format network errors
+  const handleNetworkError = (err: any, setErrState: (msg: string) => void) => {
+      console.error("Network Error:", err);
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+          setErrState('Server not reachable. Please check your VITE_API_URL setting in Vercel or ensuring backend is running.');
+      } else {
+          setErrState(err.message || 'An unexpected error occurred.');
+      }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,18 +54,20 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
-        // Fallback if backend crashes and returns HTML error page
-        throw new Error(`Server Error: ${response.status}. The backend might be down.`);
+        // If we get HTML (like a 404 page from Vercel), throw specific error
+        if (response.status === 404) {
+             throw new Error("Backend API not found (404). Check VITE_API_URL.");
+        }
+        throw new Error(`Server error: ${response.status}`);
       }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed. Please check your credentials.');
+        throw new Error(data.message || 'Login failed.');
       }
       
       setToken(data.token);
       setUser(data.user);
 
-      // Admin redirect logic
       if (data.user.isAdmin === true) {
         navigate('/admin');
       } else {
@@ -64,18 +75,11 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       }
 
     } catch (err: any) {
-      console.error("Login error:", err);
-      if (err.message === 'Failed to fetch') {
-        setError('Network Error: Cannot connect to server. Please ensure the backend is running.');
-      } else {
-        setError(err.message);
-      }
+      handleNetworkError(err, setError);
     } finally {
       setLoading(false);
     }
   };
-
-  // --- Forgot Password Handlers ---
 
   const handleSendOtp = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -84,45 +88,31 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       setForgotMessage('');
 
       try {
-          // 1. Ask backend to generate OTP
+          // Backend sends the email now
           const res = await fetch('/api/auth/forgot-password', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email: forgotEmail }) 
           });
           
-          const data = await res.json();
+          let data;
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+              data = await res.json();
+          } else {
+              if (res.status === 404) throw new Error("Backend API Route Not Found.");
+              if (res.status === 504) throw new Error("Server Timed Out.");
+              throw new Error(`Server returned ${res.status}`);
+          }
           
-          if (res.ok && data.otp) {
-              // 2. Send Email via Vercel (Frontend Logic)
-              // We use the OTP returned by the backend
-              await fetch('/api/send-email', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                      to: forgotEmail,
-                      subject: "Reset Your Password - OTP",
-                      html: `
-                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; max-width: 500px; margin: 0 auto;">
-                            <h2 style="color: #E11D48; text-align: center;">Password Reset Request</h2>
-                            <p>Hello,</p>
-                            <p>You requested to reset your password. Please use the following OTP (One-Time Password) to verify your identity.</p>
-                            <div style="background: #f0f0f0; text-align: center; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                                <span style="font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #333;">${data.otp}</span>
-                            </div>
-                            <p style="color: #666; font-size: 12px;">This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-                        </div>
-                      `
-                  })
-              });
-
+          if (res.ok) {
               setForgotStep(2);
               setForgotMessage(`An OTP has been sent to ${forgotEmail}.`);
           } else {
-              setForgotError(data.message || 'Failed to process request');
+              setForgotError(data.message || 'Failed to send OTP');
           }
       } catch (err: any) {
-          setForgotError(err.message);
+          handleNetworkError(err, setForgotError);
       } finally {
           setForgotLoading(false);
       }
@@ -155,7 +145,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
               setForgotError(data.message || 'Failed to reset password');
           }
       } catch (err: any) {
-          setForgotError(err.message);
+          handleNetworkError(err, setForgotError);
       } finally {
           setForgotLoading(false);
       }
@@ -163,7 +153,6 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
 
   return (
     <div className="min-h-screen flex bg-white">
-      {/* Left Side - Visual */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-900">
         <img 
           src="https://images.unsplash.com/photo-1618932260643-030a8327707c?q=80&w=1920&auto=format&fit=crop" 
@@ -189,7 +178,6 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
         </div>
       </div>
 
-      {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-24 bg-white">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center lg:text-left">
