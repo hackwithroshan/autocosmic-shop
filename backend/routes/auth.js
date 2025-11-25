@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
-const { sendWelcomeEmail, sendPasswordResetEmail } = require('../utils/emailService'); // Enabled
+const { sendWelcomeEmail, sendPasswordResetEmail } = require('../utils/emailService');
 
 const router = express.Router();
 
@@ -40,7 +40,6 @@ router.post('/register', async (req, res) => {
     await user.save();
 
     // Send Welcome Email from Backend
-    // We don't block registration if welcome email fails, but we log it
     sendWelcomeEmail(user).catch(err => console.error("Welcome email failed:", err));
 
     const isAdmin = isUserAdmin(user);
@@ -131,20 +130,25 @@ router.post('/forgot-password', async (req, res) => {
 
         await user.save();
 
-        // Send OTP Email from Backend
+        // Send OTP Email
         console.log(`Attempting to send OTP to ${email}...`);
         const emailResult = await sendPasswordResetEmail(email, otp);
         
         if (!emailResult.success) {
             console.error("Email sending failed:", emailResult.error);
-            return res.status(500).json({ message: 'Could not send email. Please contact support.', debug: emailResult.error });
+            // 500 error will trigger the "Server error" message on frontend
+            // We pass the specific error so the frontend can potentially show it
+            return res.status(500).json({ 
+                message: 'Failed to send email. Please contact support.', 
+                details: emailResult.error 
+            });
         }
         
         res.json({ message: 'OTP Sent to email' });
 
     } catch (err) {
         console.error("Forgot Password Error:", err);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error during password reset' });
     }
 });
 

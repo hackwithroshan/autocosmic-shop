@@ -28,8 +28,8 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
   // Helper to format network errors
   const handleNetworkError = (err: any, setErrState: (msg: string) => void) => {
       console.error("Network Error:", err);
-      if (err.message === 'Failed to fetch') {
-          setErrState('Cannot connect to server. Please check your internet or try again later.');
+      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
+          setErrState('Server not reachable. Please check your VITE_API_URL setting in Vercel or ensuring backend is running.');
       } else {
           setErrState(err.message || 'An unexpected error occurred.');
       }
@@ -56,7 +56,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       } else {
         // If we get HTML (like a 404 page from Vercel), throw specific error
         if (response.status === 404) {
-             throw new Error("Backend API not found (404). Please check VITE_API_URL.");
+             throw new Error("Backend API not found (404). Check VITE_API_URL.");
         }
         throw new Error(`Server error: ${response.status}`);
       }
@@ -100,7 +100,8 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
           if (contentType && contentType.includes("application/json")) {
               data = await res.json();
           } else {
-              if (res.status === 404) throw new Error("API Route Not Found. Check Backend Deployment.");
+              if (res.status === 404) throw new Error("Backend API Route Not Found.");
+              if (res.status === 504) throw new Error("Server Timed Out.");
               throw new Error(`Server returned ${res.status}`);
           }
           

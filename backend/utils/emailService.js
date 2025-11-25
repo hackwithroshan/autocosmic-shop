@@ -1,8 +1,10 @@
 
 // Use native fetch (available in Node 18+)
+// We do NOT require('node-fetch') to avoid dependency issues
 const triggerEmailAPI = async (payload) => {
     try {
-        if (!global.fetch) {
+        // Check if fetch exists (Node 18+ has it globally)
+        if (typeof fetch === 'undefined') {
             console.error("❌ Node Version Error: global.fetch is not defined. Please use Node.js 18 or higher.");
             return { success: false, error: "Server Configuration Error: Node 18+ required" };
         }
@@ -21,31 +23,41 @@ const triggerEmailAPI = async (payload) => {
 
         console.log(`🚀 Triggering Email via Vercel: ${apiUrl}`);
         
-        // Simple timeout logic
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Email API Timeout')), 10000)
-        );
+        // Simple timeout logic (10 seconds)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        const fetchPromise = fetch(apiUrl, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'User-Agent': 'Railway-Backend' 
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Railway-Backend' 
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
             
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error(`❌ Vercel API Failed: ${response.status} ${errText.substring(0, 100)}`);
-            return { success: false, error: `Email API returned ${response.status}` };
-        }
+            clearTimeout(timeoutId);
 
-        const data = await response.json();
-        console.log("✅ Email Sent Successfully");
-        return { success: true, data };
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error(`❌ Vercel API Failed: ${response.status} ${errText.substring(0, 100)}`);
+                return { success: false, error: `Email API returned ${response.status}` };
+            }
+
+            const data = await response.json();
+            console.log("✅ Email Sent Successfully");
+            return { success: true, data };
+
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                console.error("❌ Email API Timeout (Vercel took too long)");
+                return { success: false, error: "Email service timed out" };
+            }
+            throw fetchError;
+        }
 
     } catch (error) {
         console.error("❌ EMAIL SERVICE ERROR:", error.message);

@@ -18,11 +18,20 @@ const pageRoutes = require('./routes/pages');
 const contentRoutes = require('./routes/content');
 const collectionRoutes = require('./routes/collections');
 const feedRoutes = require('./routes/feed'); 
-// const emailRoutes = require('./routes/email'); // MOVED TO VERCEL - Disabled on Railway to prevent conflicts
 const seedDatabase = require('./seed');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+// --- HEALTH CHECK (Must be first for Railway) ---
+// This ensures Railway sees the app as "Healthy" immediately
+app.get('/', (req, res) => {
+  res.status(200).send('AutoCosmic Backend Server is Running. Access API at /api');
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Backend is reachable' });
+});
 
 // Middleware
 const corsOptions = {
@@ -41,15 +50,6 @@ app.use(express.json());
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
-});
-
-// --- HEALTH CHECK (Must be first) ---
-app.get('/', (req, res) => {
-  res.status(200).send('AutoCosmic Backend Server is Running. Access API at /api');
-});
-
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Backend is reachable' });
 });
 
 // --- Database Connection ---
@@ -92,8 +92,8 @@ app.use('/api/pages', pageRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/collections', collectionRoutes);
 app.use('/api/feed', feedRoutes);
-// app.use('/api/send-email', emailRoutes); // Disabled - Vercel handles this now
 
+// Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
