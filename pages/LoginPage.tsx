@@ -16,24 +16,15 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Forgot Password State
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); 
+  const [forgotStep, setForgotStep] = useState(1); // 1 = Email, 2 = OTP & New Password
   const [forgotEmail, setForgotEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotMessage, setForgotMessage] = useState('');
   const [forgotError, setForgotError] = useState('');
-
-  // Helper to format network errors
-  const handleNetworkError = (err: any, setErrState: (msg: string) => void) => {
-      console.error("Network Error:", err);
-      if (err.message === 'Failed to fetch' || err.name === 'TypeError') {
-          setErrState('Server not reachable. Please check your VITE_API_URL setting in Vercel or ensuring backend is running.');
-      } else {
-          setErrState(err.message || 'An unexpected error occurred.');
-      }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,20 +45,18 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
-        // If we get HTML (like a 404 page from Vercel), throw specific error
-        if (response.status === 404) {
-             throw new Error("Backend API not found (404). Check VITE_API_URL.");
-        }
-        throw new Error(`Server error: ${response.status}`);
+        // Fallback if backend crashes and returns HTML error page
+        throw new Error(`Server Error: ${response.status}. The backend might be down.`);
       }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed.');
+        throw new Error(data.message || 'Login failed. Please check your credentials.');
       }
       
       setToken(data.token);
       setUser(data.user);
 
+      // Admin redirect logic
       if (data.user.isAdmin === true) {
         navigate('/admin');
       } else {
@@ -75,11 +64,18 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       }
 
     } catch (err: any) {
-      handleNetworkError(err, setError);
+      console.error("Login error:", err);
+      if (err.message === 'Failed to fetch') {
+        setError('Network Error: Cannot connect to server. Please ensure the backend is running.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  // --- Forgot Password Handlers ---
 
   const handleSendOtp = async (e: React.FormEvent) => {
       e.preventDefault();
@@ -88,31 +84,31 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       setForgotMessage('');
 
       try {
-          // Backend sends the email now
           const res = await fetch('/api/auth/forgot-password', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: forgotEmail }) 
+              body: JSON.stringify({ email: forgotEmail })
           });
-          
-          let data;
-          const contentType = res.headers.get("content-type");
-          if (contentType && contentType.includes("application/json")) {
-              data = await res.json();
-          } else {
-              if (res.status === 404) throw new Error("Backend API Route Not Found.");
-              if (res.status === 504) throw new Error("Server Timed Out.");
-              throw new Error(`Server returned ${res.status}`);
-          }
-          
+          const data = await res.json();
           if (res.ok) {
               setForgotStep(2);
-              setForgotMessage(`An OTP has been sent to ${forgotEmail}.`);
+              setForgotMessage(`OTP sent to ${forgotEmail}`);
+              
+              // Check for Preview URL (Ethereal Email)
+              if (data.previewUrl) {
+                  console.log("OTP Preview:", data.previewUrl);
+                  const win = window.open(data.previewUrl, '_blank');
+                  if(win) {
+                      alert("TEST MODE: Opening OTP email in a new tab.");
+                  } else {
+                      alert("TEST MODE: OTP sent. Please allow popups to view the test email.");
+                  }
+              }
           } else {
               setForgotError(data.message || 'Failed to send OTP');
           }
       } catch (err: any) {
-          handleNetworkError(err, setForgotError);
+          setForgotError(err.message);
       } finally {
           setForgotLoading(false);
       }
@@ -145,7 +141,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
               setForgotError(data.message || 'Failed to reset password');
           }
       } catch (err: any) {
-          handleNetworkError(err, setForgotError);
+          setForgotError(err.message);
       } finally {
           setForgotLoading(false);
       }
@@ -153,6 +149,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
 
   return (
     <div className="min-h-screen flex bg-white">
+      {/* Left Side - Visual */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-900">
         <img 
           src="https://images.unsplash.com/photo-1618932260643-030a8327707c?q=80&w=1920&auto=format&fit=crop" 
@@ -178,6 +175,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
         </div>
       </div>
 
+      {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-24 bg-white">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center lg:text-left">

@@ -39,8 +39,8 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    // Send Welcome Email from Backend
-    sendWelcomeEmail(user).catch(err => console.error("Welcome email failed:", err));
+    // Send Welcome Email (Fire and forget)
+    sendWelcomeEmail(user);
 
     const isAdmin = isUserAdmin(user);
 
@@ -120,35 +120,37 @@ router.post('/forgot-password', async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (!user) {
+            // Security: Don't reveal if user exists or not, but for this app we might return 404
             return res.status(404).json({ message: 'User with this email does not exist' });
         }
 
+        // Generate 6-digit OTP
         const otp = crypto.randomInt(100000, 999999).toString();
         
+        // Set Expiry (10 minutes)
         user.resetPasswordOtp = otp;
         user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
         await user.save();
 
-        // Send OTP Email
-        console.log(`Attempting to send OTP to ${email}...`);
-        const emailResult = await sendPasswordResetEmail(email, otp);
-        
-        if (!emailResult.success) {
-            console.error("Email sending failed:", emailResult.error);
-            // 500 error will trigger the "Server error" message on frontend
-            // We pass the specific error so the frontend can potentially show it
-            return res.status(500).json({ 
-                message: 'Failed to send email. Please contact support.', 
-                details: emailResult.error 
-            });
+        // Send Email (Await result to confirm success)
+        const result = await sendPasswordResetEmail(email, otp);
+
+        if (!result.success) {
+            console.error("Email send failed:", result.error);
+            // Return internal error so frontend knows it failed
+            let errMsg = 'Failed to send email. ';
+            if (result.error && result.error.message) errMsg += result.error.message;
+            return res.status(500).json({ message: errMsg });
         }
-        
-        res.json({ message: 'OTP Sent to email' });
+
+        res.json({ 
+            message: 'OTP sent to your email'
+        });
 
     } catch (err) {
         console.error("Forgot Password Error:", err);
-        res.status(500).json({ message: 'Server error during password reset' });
+        res.status(500).json({ message: 'Server error' });
     }
 });
 

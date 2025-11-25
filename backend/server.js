@@ -17,21 +17,11 @@ const blogRoutes = require('./routes/blogs');
 const pageRoutes = require('./routes/pages');
 const contentRoutes = require('./routes/content');
 const collectionRoutes = require('./routes/collections');
-const feedRoutes = require('./routes/feed'); 
+const feedRoutes = require('./routes/feed'); // New Feed Route
 const seedDatabase = require('./seed');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-
-// --- HEALTH CHECK (CRITICAL FOR RAILWAY) ---
-// Must be defined before other middleware/routes to respond instantly
-app.get('/', (req, res) => {
-  res.status(200).send('AutoCosmic Backend Server is Running. Access API at /api');
-});
-
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Backend is reachable', dbState: mongoose.connection.readyState });
-});
 
 // Middleware
 const corsOptions = {
@@ -52,8 +42,30 @@ app.use((req, res, next) => {
   next();
 });
 
+const MONGO_URI = process.env.MONGO_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/autocosmic';
+
+const connectDB = async () => {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000
+    });
+    console.log('MongoDB Connected Successfully');
+  } catch (err) {
+    console.error('MongoDB Connection Failed:', err.message);
+  }
+};
+
+connectDB();
+
 // --- API Routes ---
-// Email routes removed - Email is handled by Vercel Serverless Functions
+app.get('/', (req, res) => {
+  res.send('AutoCosmic Backend Server is Running. Access API at /api');
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Backend is reachable' });
+});
+
 app.get('/api/seed', async (req, res) => {
     try {
         await seedDatabase();
@@ -76,27 +88,15 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/collections', collectionRoutes);
-app.use('/api/feed', feedRoutes);
+app.use('/api/feed', feedRoutes); // Register Feed Route
 
-// Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
-// --- Start Server & Connect DB ---
-// 1. Start Listening immediately to pass Railway Health Check
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ Server is listening on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
 });
-
-// 2. Connect to MongoDB in background
-const MONGO_URI = process.env.MONGO_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/autocosmic';
-
-mongoose.connect(MONGO_URI, {
-  serverSelectionTimeoutMS: 5000
-})
-.then(() => console.log('✅ MongoDB Connected Successfully'))
-.catch(err => console.error('❌ MongoDB Connection Failed:', err.message));
 
 module.exports = app;

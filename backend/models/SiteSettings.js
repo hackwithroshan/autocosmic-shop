@@ -15,11 +15,7 @@ const SiteSettingsSchema = new mongoose.Schema({
   shippingZones: [ShippingZoneSchema],
   facebookPixelId: { type: String, default: '' },
   googlePixelId: { type: String, default: '' },
-  
-  // Video Display Controls
-  videoAutoplay: { type: Boolean, default: false },
-  videoMuted: { type: Boolean, default: true },
-  videoGridColumns: { type: Number, default: 4, min: 1, max: 4 }
+  videoAutoplay: { type: Boolean, default: false } // New Field
 });
 
 module.exports = mongoose.model('SiteSettings', SiteSettingsSchema);

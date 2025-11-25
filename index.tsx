@@ -4,8 +4,8 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 
 // --- Global Fetch Interceptor ---
-// This ensures that API calls point to the Railway backend URL,
-// EXCEPT for the email service which runs on Vercel Serverless.
+// This ensures that all relative API calls (e.g., fetch('/api/products')) 
+// automatically point to the Railway backend URL when deployed on Vercel.
 
 const originalFetch = window.fetch.bind(window);
 
@@ -13,14 +13,12 @@ const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
     let resource = input;
     
     // Get the API URL from environment variables safely
+    // In Vite, import.meta.env is the standard way to access env vars
     const env = (import.meta as any).env || {}; 
     let apiUrl = env.VITE_API_URL;
 
     // --- CRITICAL FIX: Sanitize API URL ---
-    // We route all /api requests to the Backend Server (Railway),
-    // UNLESS it is '/api/send-email', which must be handled by Vercel (Serverless).
-    if (typeof resource === 'string' && resource.startsWith('/api') && !resource.startsWith('/api/send-email')) {
-        
+    if (typeof resource === 'string' && resource.startsWith('/api')) {
         if (apiUrl) {
             // 1. Remove whitespace
             apiUrl = apiUrl.trim();
@@ -30,22 +28,21 @@ const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
                 apiUrl = apiUrl.substring(1, apiUrl.length - 1);
             }
 
-            // 3. Remove trailing slash to prevent double slashes
+            // 3. Remove trailing slash to prevent double slashes (e.g., .app//api)
             if (apiUrl.endsWith('/')) {
                 apiUrl = apiUrl.slice(0, -1);
             }
 
-            // 4. Construct the full URL for backend calls
+            // 4. Construct the full URL
             resource = `${apiUrl}${resource}`;
             
-            // 5. LOGGING (Optional: Enable for debugging)
-            // console.log(`[API Proxy] Requesting: ${resource}`);
+            // 5. LOGGING (Crucial for debugging Network Errors)
+            console.log(`[API Proxy] Requesting: ${resource}`);
         } else {
-             // Only warn in production or if not localhost to prevent noise
+             // Only warn if we are in production (not localhost)
              if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                console.error('🚨 [CRITICAL ERROR] VITE_API_URL is missing in Vercel Environment Variables!');
-                console.error('👉 Please add VITE_API_URL in Vercel Settings pointing to your Railway Backend.');
-                console.error('👉 Example: https://your-backend.up.railway.app');
+                console.error('[API Proxy] ❌ VITE_API_URL is MISSING in Vercel Environment Variables!');
+                console.warn('Request will likely fail. Please add VITE_API_URL to Vercel Settings.');
              }
         }
     }

@@ -90,41 +90,24 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentView, setCurrentView
   return (
     <>
       {/* Mobile Overlay */}
-      <div 
-        className={`fixed inset-0 z-20 bg-black/60 lg:hidden backdrop-blur-sm transition-opacity duration-300 ${
-          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`} 
-        onClick={() => setIsOpen(false)}
-        aria-hidden="true"
-      />
+      {isOpen && (
+        <div 
+          className="fixed inset-0 z-20 bg-black/60 lg:hidden backdrop-blur-sm transition-opacity" 
+          onClick={() => setIsOpen(false)}
+        />
+      )}
 
       {/* Sidebar Container */}
-      <div 
-        className={`
-          fixed inset-y-0 left-0 z-30 w-72 bg-[#0f172a] text-gray-300 
-          transition-transform duration-300 ease-in-out transform 
-          lg:static lg:translate-x-0 
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
-          flex flex-col border-r border-gray-800 shadow-2xl
-        `}
-      >
+      <div className={`fixed inset-y-0 left-0 z-30 w-72 bg-[#0f172a] text-gray-300 transition-transform duration-300 ease-in-out transform lg:static lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col border-r border-gray-800 shadow-2xl`}>
         
         {/* Brand Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-gray-800 bg-[#0f172a] flex-shrink-0">
-            <div className="flex flex-col">
+        <div className="h-20 flex items-center justify-center border-b border-gray-800 bg-[#0f172a]">
+            <div className="flex flex-col items-center">
                  <span className="text-white text-2xl font-serif font-extrabold tracking-wide">
                     Ladies<span className="text-rose-500">Choice</span>
                 </span>
                 <span className="text-[10px] text-gray-500 uppercase tracking-[0.25em] mt-1 font-semibold">Admin Panel</span>
             </div>
-            {/* Mobile Close Button */}
-            <button 
-              onClick={() => setIsOpen(false)}
-              className="lg:hidden text-gray-400 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors focus:outline-none"
-              aria-label="Close menu"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
         </div>
 
         {/* Navigation Items */}

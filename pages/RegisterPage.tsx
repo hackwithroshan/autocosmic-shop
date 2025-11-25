@@ -60,6 +60,7 @@ const RegisterPage: React.FC<RegisterProps> = ({ setToken, setUser }) => {
 
   return (
     <div className="min-h-screen flex bg-white">
+      {/* Left Side - Image */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-rose-900">
         <img 
           src="https://images.unsplash.com/photo-1496747611176-843222e1e57c?q=80&w=1920&auto=format&fit=crop" 
@@ -77,6 +78,7 @@ const RegisterPage: React.FC<RegisterProps> = ({ setToken, setUser }) => {
         </div>
       </div>
 
+      {/* Right Side - Register Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 sm:p-12 lg:p-24 bg-white">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center lg:text-left">

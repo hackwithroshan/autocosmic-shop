@@ -1,3 +1,4 @@
+
 {
   "name": "autocosmic-frontend",
   "version": "1.0.0",
@@ -17,9 +18,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.4.1",
-    "nodemailer": "^6.9.13",
-    "pdfkit": "^0.15.0"
+    "mongoose": "^8.4.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
