@@ -11,14 +11,18 @@ try {
 }
 
 // --- SMTP Configuration (Hostinger) ---
+// Added timeouts for better reliability
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.hostinger.com',
     port: process.env.EMAIL_PORT || 465,
-    secure: true, // true for 465, false for other ports
+    secure: true, // true for 465
     auth: {
         user: process.env.EMAIL_USER || 'noreply@apexnucleus.com',
         pass: process.env.EMAIL_PASS // Must be set in .env
-    }
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 5000,
+    socketTimeout: 10000
 });
 
 const SENDER_EMAIL = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
