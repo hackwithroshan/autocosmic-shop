@@ -5,32 +5,51 @@ const triggerEmailAPI = async (payload) => {
         const frontendUrl = process.env.FRONTEND_URL; 
         
         if (!frontendUrl) {
-            console.error("❌ EMAIL ERROR: 'FRONTEND_URL' is missing in Railway variables.");
-            return { success: false, error: "Configuration Error" };
+            console.error("❌ EMAIL CRITICAL: 'FRONTEND_URL' is missing in Railway variables.");
+            console.error("👉 Add FRONTEND_URL=https://your-app.vercel.app in Railway Settings");
+            return { success: false, error: "Configuration Error: FRONTEND_URL missing" };
         }
 
-        // Remove trailing slash and append API path
-        const apiUrl = `${frontendUrl.replace(/\/$/, '')}/api/send-email`;
+        // Ensure no trailing slash and correct API path
+        const baseUrl = frontendUrl.replace(/\/$/, '');
+        const apiUrl = `${baseUrl}/api/send-email`;
 
-        console.log(`📨 Sending email via Vercel API: ${apiUrl} -> ${payload.to}`);
+        console.log(`🚀 Attempting to trigger email...`);
+        console.log(`🎯 Target URL: ${apiUrl}`);
+        console.log(`📧 Recipient: ${payload.to}`);
 
         const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'User-Agent': 'Railway-Backend' 
+            },
             body: JSON.stringify(payload)
         });
 
+        const contentType = response.headers.get("content-type");
+        
         if (!response.ok) {
             const errText = await response.text();
-            throw new Error(`API Error: ${response.status} - ${errText}`);
+            console.error(`❌ Vercel API Failed: ${response.status} ${response.statusText}`);
+            console.error(`⚠️ Error Details: ${errText}`);
+            
+            if (response.status === 404) {
+                console.error("💡 Hint: The URL is returning 404. Check 'vercel.json' routing or if deployment is successful.");
+            }
+            if (errText.includes("<!DOCTYPE html>")) {
+                console.error("💡 Hint: Vercel returned HTML instead of JSON. This means the request hit the React App instead of the API. Check 'vercel.json' rewrites.");
+            }
+            
+            throw new Error(`API Error: ${response.status}`);
         }
 
         const data = await response.json();
-        console.log("✅ Email sent successfully via Vercel.");
+        console.log("✅ Vercel Email API Success:", data);
         return { success: true, data };
 
     } catch (error) {
-        console.error("❌ Failed to trigger Email API:", error.message);
+        console.error("❌ EMAIL SERVICE CRASH:", error.message);
         return { success: false, error: error.message };
     }
 };
@@ -65,7 +84,7 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
         </div>
     `;
 
-    // Prepare Invoice Data for PDF generation on Vercel
+    // Prepare Invoice Data
     const invoiceData = {
         orderId: order._id,
         customerName: order.customerName,
