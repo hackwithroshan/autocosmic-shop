@@ -5,6 +5,14 @@ export interface Category {
   subcategories: { id: string; name: string }[];
 }
 
+export interface Review {
+  _id?: string;
+  name: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
 export interface Product {
   id: string;
   // Basic
@@ -54,6 +62,9 @@ export interface Product {
   // Variants
   hasVariants?: boolean;
   variants?: ProductVariant[];
+
+  // Reviews
+  reviews?: Review[];
 }
 
 export interface ProductVariant {

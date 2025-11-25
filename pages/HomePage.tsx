@@ -20,6 +20,63 @@ interface Collection {
     slug?: string;
 }
 
+interface VideoListItemProps {
+    video: any;
+    autoplay: boolean;
+    onClick: () => void;
+}
+
+// Video Component for List (Handles Autoplay/Mute)
+const VideoListItem: React.FC<VideoListItemProps> = ({ video, autoplay, onClick }) => {
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        if (autoplay && videoRef.current) {
+            videoRef.current.play().catch(e => console.log("Autoplay prevented:", e));
+        } else if (videoRef.current) {
+            videoRef.current.pause();
+        }
+    }, [autoplay]);
+
+    return (
+      <div 
+          onClick={onClick}
+          className="relative flex-shrink-0 w-64 sm:w-auto aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer shadow-lg transition-transform transform hover:scale-105"
+      >
+          {autoplay ? (
+              <video 
+                  ref={videoRef}
+                  src={video.videoUrl}
+                  muted 
+                  loop 
+                  playsInline 
+                  className="w-full h-full object-cover"
+              />
+          ) : (
+              <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/>
+          )}
+          
+          {/* Overlays */}
+          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
+          {!autoplay && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/50 group-hover:scale-110 transition-transform">
+                      <PlayIcon className="h-5 w-5 text-white ml-1"/>
+                  </div>
+              </div>
+          )}
+          
+          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
+              <h4 className="font-bold text-lg truncate">{video.title}</h4>
+              <div className="flex justify-between items-center mt-2">
+                  <span className="font-medium">{video.price}</span>
+                  <button className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors">Shop</button>
+              </div>
+          </div>
+      </div>
+    );
+};
+
 const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -100,57 +157,6 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
 
   const newArrivals = products.slice(0, 4);
   const bestSellers = products.length > 4 ? products.slice(4, 8) : products.slice(0, 4);
-
-  // Video Component for List (Handles Autoplay/Mute)
-  const VideoListItem = ({ video, autoplay, onClick }: { video: any, autoplay: boolean, onClick: () => void }) => {
-      const videoRef = useRef<HTMLVideoElement>(null);
-
-      useEffect(() => {
-          if (autoplay && videoRef.current) {
-              videoRef.current.play().catch(e => console.log("Autoplay prevented:", e));
-          } else if (videoRef.current) {
-              videoRef.current.pause();
-          }
-      }, [autoplay]);
-
-      return (
-        <div 
-            onClick={onClick}
-            className="relative flex-shrink-0 w-64 sm:w-auto aspect-[9/16] rounded-2xl overflow-hidden group cursor-pointer shadow-lg transition-transform transform hover:scale-105"
-        >
-            {autoplay ? (
-                <video 
-                    ref={videoRef}
-                    src={video.videoUrl}
-                    muted 
-                    loop 
-                    playsInline 
-                    className="w-full h-full object-cover"
-                />
-            ) : (
-                <img src={video.thumbnailUrl} alt={video.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"/>
-            )}
-            
-            {/* Overlays */}
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors"></div>
-            {!autoplay && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/50 group-hover:scale-110 transition-transform">
-                        <PlayIcon className="h-5 w-5 text-white ml-1"/>
-                    </div>
-                </div>
-            )}
-            
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
-                <h4 className="font-bold text-lg truncate">{video.title}</h4>
-                <div className="flex justify-between items-center mt-2">
-                    <span className="font-medium">{video.price}</span>
-                    <button className="bg-white text-black text-xs font-bold px-3 py-1.5 rounded-full hover:bg-gray-200 transition-colors">Shop</button>
-                </div>
-            </div>
-        </div>
-      );
-  };
 
   return (
     <div className="flex flex-col min-h-screen bg-white">

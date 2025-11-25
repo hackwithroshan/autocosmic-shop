@@ -13,6 +13,13 @@ const VariantSchema = new mongoose.Schema({
   options: [VariantOptionSchema]
 });
 
+const ReviewSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  rating: { type: Number, required: true, min: 1, max: 5 },
+  comment: { type: String, required: true },
+  date: { type: Date, default: Date.now }
+});
+
 const ProductSchema = new mongoose.Schema({
   // Basic
   name: { type: String, required: true },
@@ -65,6 +72,9 @@ const ProductSchema = new mongoose.Schema({
   // Variants
   hasVariants: { type: Boolean, default: false },
   variants: [VariantSchema],
+
+  // Reviews
+  reviews: [ReviewSchema],
 
   createdAt: { type: Date, default: Date.now }
 });

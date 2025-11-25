@@ -123,6 +123,48 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
     }
   };
 
+  // Fire-and-Forget Email Trigger
+  const sendConfirmationEmail = (orderData: any, orderId: string) => {
+      const subject = `Order Confirmed! #${orderId.substring(0,6).toUpperCase()}`;
+      const html = `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+            <h2 style="color: #E11D48;">Thank you for your purchase!</h2>
+            <p>Hi ${formData.firstName},</p>
+            <p>We have received your order. It is currently being processed.</p>
+            <p><strong>Order Total: Rs. ${orderData.total}</strong></p>
+            <p>Please find your invoice attached.</p>
+            <p>We will notify you once your items are shipped.</p>
+            <p>Best Regards,<br/>Ladies Smart Choice Team</p>
+        </div>
+      `;
+
+      // Prepare invoice data for PDF generation in Serverless Function
+      const invoiceData = {
+          orderId: orderId,
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          address: `${formData.address}, ${formData.city}, ${formData.postalCode}`,
+          total: orderData.total,
+          items: orderData.items.map((item: any) => ({
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price
+          }))
+      };
+
+      // Fire fetch without awaiting
+      fetch('/api/send-email', {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              to: formData.email,
+              subject: subject,
+              html: html,
+              invoiceData: invoiceData // Triggers PDF generation on backend
+          })
+      }).catch(e => console.error("Vercel Email Failed:", e));
+  };
+
   const verifyAndPlaceOrder = async (paymentInfo: any) => {
       const orderData = {
         userId: user?.id, // Might be undefined if guest
@@ -141,6 +183,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
       };
 
       try {
+        // 1. Save Order to DB (Railway)
         const response = await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -153,6 +196,10 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
         }
 
         const responseData = await response.json();
+        
+        // 2. Trigger Email (Fast & Non-blocking) with Invoice Data
+        sendConfirmationEmail(orderData, responseData._id || responseData.id);
+
         clearCart();
         
         // Success Feedback
@@ -162,7 +209,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
                 <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; max-width: 400px;">
                     <svg style="width: 60px; height: 60px; color: green; margin: 0 auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                     <h2 style="margin-top: 20px; font-size: 24px; color: #333;">Order Placed!</h2>
-                    <p style="color: #666; margin-top: 10px;">A confirmation email has been sent to <b>${formData.email}</b>.</p>
+                    <p style="color: #666; margin-top: 10px;">Invoice sent to <b>${formData.email}</b>.</p>
                     ${responseData.accountCreated ? `<div style="margin-top:15px; padding: 10px; background: #f0fdf4; color: #166534; border-radius: 5px; font-size: 14px;">An account has been created for you.<br/>Password: Your Mobile Number</div>` : ''}
                 </div>
             </div>
@@ -174,7 +221,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             if (user) {
                 navigate('/dashboard');
             } else {
-                // If guest, maybe redirect to login or home
                 navigate('/');
             }
         }, 4000);

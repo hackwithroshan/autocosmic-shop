@@ -17,6 +17,29 @@ const RegisterPage: React.FC<RegisterProps> = ({ setToken, setUser }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // Non-blocking Fire & Forget Email
+  const sendWelcomeEmail = (userName: string, userEmail: string) => {
+      fetch('/api/send-email', {
+          method: 'POST',
+          // keepalive: true ensures the request completes even if the page unloads/navigates immediately
+          keepalive: true, 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              to: userEmail,
+              subject: "Welcome to Ladies Smart Choice!",
+              html: `
+                <div style="font-family: sans-serif; text-align: center; padding: 20px; border: 1px solid #eee;">
+                    <h1 style="color: #E11D48;">Welcome, ${userName}!</h1>
+                    <p>We are thrilled to have you with us.</p>
+                    <p>Discover the latest trends in women's fashion.</p>
+                    <br/>
+                    <a href="https://${window.location.host}" style="background: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Start Shopping</a>
+                </div>
+              `
+          })
+      }).catch(err => console.error("Welcome email failed:", err));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -43,6 +66,9 @@ const RegisterPage: React.FC<RegisterProps> = ({ setToken, setUser }) => {
         throw new Error(data.message || 'Registration failed. Try a different email.');
       }
       
+      // Fire and Forget Email (Fast UI)
+      sendWelcomeEmail(name, email);
+
       setToken(data.token);
       setUser(data.user);
       navigate('/');

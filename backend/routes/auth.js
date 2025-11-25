@@ -4,23 +4,18 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
-const { sendWelcomeEmail, sendPasswordResetEmail } = require('../utils/emailService');
+// const { sendWelcomeEmail, sendPasswordResetEmail } = require('../utils/emailService'); // REMOVED: Using Vercel
 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_default_jwt_secret';
 
-// Helper to check if a role is an admin role (Case Insensitive & Robust)
+// Helper to check if a user is admin
 const isUserAdmin = (user) => {
-    // 1. Check explicit boolean flag
     if (user.isAdmin === true) return true;
-    
-    // 2. Check role string
     if (!user.role) return false;
-    
     const role = user.role.toLowerCase().trim();
     const adminRoles = ['super admin', 'manager', 'admin', 'administrator'];
-    
     return adminRoles.includes(role);
 };
 
@@ -44,8 +39,8 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    // Send Welcome Email
-    sendWelcomeEmail(user);
+    // NOTE: We removed sendWelcomeEmail(user);
+    // Frontend will handle it.
 
     const isAdmin = isUserAdmin(user);
 
@@ -80,26 +75,22 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
-    // Robust Admin Check
     const isAdmin = isUserAdmin(user);
 
-    // Create JWT Payload
     const payload = {
       user: {
         id: user.id,
-        isAdmin: isAdmin, // embed computed admin status in token
+        isAdmin: isAdmin,
       },
     };
 
@@ -111,7 +102,7 @@ router.post('/login', async (req, res) => {
               id: user.id, 
               name: user.name, 
               email: user.email, 
-              isAdmin: isAdmin, // Return computed admin status to frontend
+              isAdmin: isAdmin, 
               role: user.role,
               avatarUrl: user.avatarUrl
           } 
@@ -123,31 +114,32 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// 1. Forgot Password - Generate OTP & Send Email
+// 1. Forgot Password
 router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
     try {
         const user = await User.findOne({ email });
         if (!user) {
+            // Return 404 so frontend knows not to try sending email
             return res.status(404).json({ message: 'User with this email does not exist' });
         }
 
         // Generate 6-digit OTP
         const otp = crypto.randomInt(100000, 999999).toString();
         
-        // Set Expiry (10 minutes from now)
+        // Set Expiry (10 minutes)
         user.resetPasswordOtp = otp;
         user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
 
         await user.save();
 
-        // Send Email
-        const result = await sendPasswordResetEmail(email, otp);
-
-        // Pass back previewUrl if it exists (dev/test mode)
+        // NOTE: We removed sendPasswordResetEmail(email, otp);
+        // Instead, we return the OTP to the client so it can send via Vercel.
+        // WARNING: This exposes OTP to the client, used here per specific architecture requirements.
+        
         res.json({ 
-            message: 'OTP sent to your email',
-            previewUrl: result?.previewUrl 
+            message: 'OTP Generated',
+            otp: otp // Sending OTP back to frontend
         });
 
     } catch (err) {
@@ -156,25 +148,23 @@ router.post('/forgot-password', async (req, res) => {
     }
 });
 
-// 2. Reset Password - Verify OTP & Update Password
+// 2. Reset Password
 router.post('/reset-password', async (req, res) => {
     const { email, otp, newPassword } = req.body;
     try {
         const user = await User.findOne({ 
             email,
             resetPasswordOtp: otp,
-            resetPasswordExpires: { $gt: Date.now() } // Check if not expired
+            resetPasswordExpires: { $gt: Date.now() } 
         });
 
         if (!user) {
             return res.status(400).json({ message: 'Invalid or expired OTP' });
         }
 
-        // Hash new password
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(newPassword, salt);
 
-        // Clear reset fields
         user.resetPasswordOtp = undefined;
         user.resetPasswordExpires = undefined;
 

@@ -84,28 +84,42 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       setForgotMessage('');
 
       try {
+          // 1. Ask backend to generate OTP
           const res = await fetch('/api/auth/forgot-password', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: forgotEmail })
+              body: JSON.stringify({ email: forgotEmail }) 
           });
+          
           const data = await res.json();
-          if (res.ok) {
+          
+          if (res.ok && data.otp) {
+              // 2. Send Email via Vercel (Frontend Logic)
+              // We use the OTP returned by the backend
+              await fetch('/api/send-email', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                      to: forgotEmail,
+                      subject: "Reset Your Password - OTP",
+                      html: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; max-width: 500px; margin: 0 auto;">
+                            <h2 style="color: #E11D48; text-align: center;">Password Reset Request</h2>
+                            <p>Hello,</p>
+                            <p>You requested to reset your password. Please use the following OTP (One-Time Password) to verify your identity.</p>
+                            <div style="background: #f0f0f0; text-align: center; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                                <span style="font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #333;">${data.otp}</span>
+                            </div>
+                            <p style="color: #666; font-size: 12px;">This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>
+                        </div>
+                      `
+                  })
+              });
+
               setForgotStep(2);
-              setForgotMessage(`OTP sent to ${forgotEmail}`);
-              
-              // Check for Preview URL (Ethereal Email)
-              if (data.previewUrl) {
-                  console.log("OTP Preview:", data.previewUrl);
-                  const win = window.open(data.previewUrl, '_blank');
-                  if(win) {
-                      alert("TEST MODE: Opening OTP email in a new tab.");
-                  } else {
-                      alert("TEST MODE: OTP sent. Please allow popups to view the test email.");
-                  }
-              }
+              setForgotMessage(`An OTP has been sent to ${forgotEmail}.`);
           } else {
-              setForgotError(data.message || 'Failed to send OTP');
+              setForgotError(data.message || 'Failed to process request');
           }
       } catch (err: any) {
           setForgotError(err.message);

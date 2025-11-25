@@ -1,8 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, ProductVariant, Category } from '../../types';
 import { COLORS } from '../../constants';
 import MediaPicker from './MediaPicker';
+
+// Cloudinary Config (Should ideally be in env/constants, duplicated here for scope)
+const CLOUDINARY_UPLOAD_PRESET = 'ladiesh';
+const CLOUDINARY_CLOUD_NAME = 'djbv48acj';
+const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
 
 interface ProductFormProps {
   product: Product | null;
@@ -41,17 +46,123 @@ const initialFormData: Omit<Product, 'id'> = {
   variants: [],
 };
 
+// --- Simple Rich Text Editor Component ---
+interface RichTextEditorProps {
+    value: string;
+    onChange: (val: string) => void;
+}
+
+const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => {
+    const [isSourceMode, setIsSourceMode] = useState(false);
+    const contentEditableRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (contentEditableRef.current && !isSourceMode && document.activeElement !== contentEditableRef.current) {
+            if (contentEditableRef.current.innerHTML !== value) {
+                contentEditableRef.current.innerHTML = value;
+            }
+        }
+    }, [value, isSourceMode]);
+
+    const execCmd = (command: string, value: string | undefined = undefined) => {
+        document.execCommand(command, false, value);
+        if (contentEditableRef.current) {
+            onChange(contentEditableRef.current.innerHTML);
+        }
+    };
+
+    const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+        onChange(e.currentTarget.innerHTML);
+    };
+
+    const ToolbarButton = ({ cmd, arg, icon, label }: { cmd?: string, arg?: string, icon?: React.ReactNode, label?: string }) => (
+        <button 
+            type="button"
+            onClick={() => cmd && execCmd(cmd, arg)}
+            className="p-1.5 text-gray-600 hover:bg-gray-200 rounded transition-colors"
+            title={label}
+        >
+            {icon}
+        </button>
+    );
+
+    return (
+        <div className="border border-gray-300 rounded-lg overflow-hidden shadow-sm transition-all focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
+            <div className="flex items-center gap-1 bg-gray-50 border-b border-gray-200 p-2 flex-wrap">
+                <div className="flex gap-1 mr-4 border-r border-gray-300 pr-4">
+                    <button 
+                        type="button" 
+                        onClick={() => setIsSourceMode(!isSourceMode)}
+                        className={`px-2 py-1 text-xs font-bold rounded flex items-center gap-1 ${isSourceMode ? 'bg-blue-600 text-white' : 'bg-white border text-gray-700 hover:bg-gray-100'}`}
+                    >
+                        {isSourceMode ? (
+                            <><span>👁</span> Visual</>
+                        ) : (
+                            <><span>&lt;/&gt;</span> HTML</>
+                        )}
+                    </button>
+                </div>
+
+                {!isSourceMode && (
+                    <>
+                        <ToolbarButton cmd="bold" label="Bold" icon={<span className="font-bold serif">B</span>} />
+                        <ToolbarButton cmd="italic" label="Italic" icon={<span className="italic serif">I</span>} />
+                        <ToolbarButton cmd="underline" label="Underline" icon={<span className="underline serif">U</span>} />
+                        <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                        <ToolbarButton cmd="justifyLeft" label="Align Left" icon={<svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v2H3V4zm0 7h12v2H3v-2zm0 7h18v2H3v-2z"/></svg>} />
+                        <ToolbarButton cmd="justifyCenter" label="Align Center" icon={<svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4h18v2H3V4zm3 7h12v2H6v-2zm-3 7h18v2H3v-2z"/></svg>} />
+                        <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                        <ToolbarButton cmd="insertUnorderedList" label="Bullet List" icon={<svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h2v2H4V6zm0 5h2v2H4v-2zm0 5h2v2H4v-2zM8 6h12v2H8V6zm0 5h12v2H8v-2zm0 5h12v2H8v-2z"/></svg>} />
+                        <ToolbarButton cmd="insertOrderedList" label="Numbered List" icon={<svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h2v2H4V6zm0 5h2v2H4v-2zm0 5h2v2H4v-2zM8 6h12v2H8V6zm0 5h12v2H8v-2zm0 5h12v2H8v-2z"/></svg>} />
+                        <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                        <ToolbarButton cmd="formatBlock" arg="H2" label="Heading 2" icon={<span className="font-bold text-xs">H2</span>} />
+                        <ToolbarButton cmd="formatBlock" arg="H3" label="Heading 3" icon={<span className="font-bold text-xs">H3</span>} />
+                        <ToolbarButton cmd="removeFormat" label="Clear Format" icon={<span className="text-xs">Clear</span>} />
+                    </>
+                )}
+            </div>
+
+            <div className="relative min-h-[300px]">
+                {isSourceMode ? (
+                    <textarea
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        className="w-full h-[300px] p-4 font-mono text-sm text-gray-800 bg-gray-900/5 outline-none resize-y"
+                        placeholder="<!-- Paste HTML here -->"
+                    />
+                ) : (
+                    <div
+                        ref={contentEditableRef}
+                        contentEditable
+                        onInput={handleInput}
+                        className="prose prose-sm max-w-none p-4 min-h-[300px] outline-none focus:outline-none overflow-y-auto"
+                        style={{ maxHeight: '600px' }}
+                    />
+                )}
+            </div>
+            <div className="bg-gray-50 px-3 py-1 text-[10px] text-gray-400 border-t text-right">
+                {isSourceMode ? 'HTML Mode' : 'Rich Text Mode'}
+            </div>
+        </div>
+    );
+};
+
+
 const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Omit<Product, 'id'>>(initialFormData);
   const [tagInput, setTagInput] = useState('');
   const [seoKeywordInput, setSeoKeywordInput] = useState('');
   
+  // Gallery State
+  const [isUploading, setIsUploading] = useState(false);
+  const [draggedImageIndex, setDraggedImageIndex] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Category Management State
   const [categories, setCategories] = useState<Category[]>([]);
   const [isManageCatsOpen, setIsManageCatsOpen] = useState(false);
   const [newCatName, setNewCatName] = useState('');
 
-  // Fetch Categories
   const fetchCategories = async () => {
     try {
       const res = await fetch('/api/products/categories');
@@ -99,7 +210,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
     setFormData(prev => ({ ...prev, [name]: val }));
   };
 
-  // Handlers
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       setFormData(prev => ({
@@ -112,53 +222,58 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
       }));
   };
 
-  // Tags Logic
-  const handleTagKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ',') {
-          e.preventDefault();
-          if (tagInput.trim()) {
-              if (!formData.tags?.includes(tagInput.trim())) {
-                  setFormData(prev => ({ ...prev, tags: [...(prev.tags || []), tagInput.trim()] }));
-              }
-              setTagInput('');
-          }
-      }
-  };
-  const removeTag = (index: number) => {
-      setFormData(prev => ({ ...prev, tags: prev.tags?.filter((_, i) => i !== index) }));
-  };
+  // --- Gallery Management ---
 
-  // SEO Keywords Logic
-  const handleSeoKeywordKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ',') {
-          e.preventDefault();
-          if (seoKeywordInput.trim()) {
-              if (!formData.seoKeywords?.includes(seoKeywordInput.trim())) {
-                  setFormData(prev => ({ ...prev, seoKeywords: [...(prev.seoKeywords || []), seoKeywordInput.trim()] }));
-              }
-              setSeoKeywordInput('');
-          }
-      }
-  };
-  const removeSeoKeyword = (index: number) => {
-      setFormData(prev => ({ ...prev, seoKeywords: prev.seoKeywords?.filter((_, i) => i !== index) }));
-  };
+  const handleGalleryUpload = async (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      setIsUploading(true);
 
-  const addGalleryImage = () => {
-      setFormData(prev => ({ ...prev, galleryImages: [...(prev.galleryImages || []), ''] }));
-  };
-  
-  const updateGalleryImage = (index: number, url: string) => {
-      const images = [...(formData.galleryImages || [])];
-      images[index] = url;
-      setFormData(prev => ({ ...prev, galleryImages: images }));
+      const uploads = Array.from(files).map(async (file) => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+          try {
+              const res = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData });
+              const data = await res.json();
+              return data.secure_url;
+          } catch (error) {
+              console.error("Upload failed for file", file.name, error);
+              return null;
+          }
+      });
+
+      const urls = (await Promise.all(uploads)).filter(url => url !== null) as string[];
+      setFormData(prev => ({ ...prev, galleryImages: [...(prev.galleryImages || []), ...urls] }));
+      setIsUploading(false);
   };
 
   const removeGalleryImage = (index: number) => {
       setFormData(prev => ({ ...prev, galleryImages: prev.galleryImages?.filter((_, i) => i !== index) }));
   };
 
-  // Variant Logic
+  // Drag and Sort Handlers
+  const handleSortStart = (index: number) => setDraggedImageIndex(index);
+  
+  const handleSortDrop = (targetIndex: number) => {
+      if (draggedImageIndex === null || draggedImageIndex === targetIndex) return;
+      
+      const updatedImages = [...(formData.galleryImages || [])];
+      const [movedImage] = updatedImages.splice(draggedImageIndex, 1);
+      updatedImages.splice(targetIndex, 0, movedImage);
+      
+      setFormData(prev => ({ ...prev, galleryImages: updatedImages }));
+      setDraggedImageIndex(null);
+  };
+
+  const handleFileDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          handleGalleryUpload(e.dataTransfer.files);
+      }
+  };
+
+  // --- Variants Logic ---
   const addVariant = () => {
       const newVariant: ProductVariant = { name: 'Size', options: [{ value: 'Standard', price: formData.price, stock: 10, image: '' }] };
       setFormData(prev => ({ ...prev, variants: [...(prev.variants || []), newVariant] }));
@@ -187,25 +302,40 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
      setFormData({ ...formData, variants: updated });
   };
 
+  // --- Tags & SEO ---
+  const handleTagKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          if (tagInput.trim() && !formData.tags?.includes(tagInput.trim())) {
+              setFormData(prev => ({ ...prev, tags: [...(prev.tags || []), tagInput.trim()] }));
+          }
+          setTagInput('');
+      }
+  };
+  const removeTag = (index: number) => setFormData(prev => ({ ...prev, tags: prev.tags?.filter((_, i) => i !== index) }));
+
+  const handleSeoKeywordKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ',') {
+          e.preventDefault();
+          if (seoKeywordInput.trim() && !formData.seoKeywords?.includes(seoKeywordInput.trim())) {
+              setFormData(prev => ({ ...prev, seoKeywords: [...(prev.seoKeywords || []), seoKeywordInput.trim()] }));
+          }
+          setSeoKeywordInput('');
+      }
+  };
+  const removeSeoKeyword = (index: number) => setFormData(prev => ({ ...prev, seoKeywords: prev.seoKeywords?.filter((_, i) => i !== index) }));
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave({ ...formData, id: product?.id });
   };
 
-  const calculateDiscount = () => {
-      if (formData.mrp && formData.price && formData.mrp > formData.price) {
-          return Math.round(((formData.mrp - formData.price) / formData.mrp) * 100);
-      }
-      return 0;
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA' && !(e.target as HTMLElement).isContentEditable) {
       e.preventDefault();
     }
   };
 
-  // Category Management
   const handleAddCategory = async () => {
       if(!newCatName.trim()) return;
       const token = localStorage.getItem('token');
@@ -258,37 +388,93 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                     <h3 className="text-lg font-bold text-gray-800 mb-4">Product Details</h3>
                     <div className="space-y-5">
                         <div><label className="block text-sm font-semibold text-gray-700 mb-1">Title</label><input type="text" name="name" value={formData.name} onChange={handleNameChange} required className="block w-full border-gray-300 rounded-lg shadow-sm p-3 border"/></div>
+                        
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                              <div><label className="block text-sm font-medium text-gray-700 mb-1">Brand</label><input type="text" name="brand" value={formData.brand} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
                              <div><label className="block text-sm font-medium text-gray-700 mb-1">SKU</label><input type="text" name="sku" value={formData.sku} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
                         </div>
-                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Full Description</label><textarea name="description" value={formData.description} onChange={handleChange} rows={8} className="block w-full p-3 border border-gray-300 rounded-lg shadow-sm"/></div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Short Description</label>
+                            <textarea name="shortDescription" value={formData.shortDescription} onChange={handleChange} rows={3} className="block w-full p-3 border border-gray-300 rounded-lg shadow-sm text-sm" placeholder="Brief summary shown on cards..."/>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Full Description</label>
+                            <RichTextEditor value={formData.description} onChange={(val) => setFormData(prev => ({ ...prev, description: val }))} />
+                        </div>
                     </div>
                  </div>
 
-                 {/* Media (Replaced inputs with MediaPicker) */}
+                 {/* Media Section with Enhanced Uploads */}
                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">Media</h3>
+                    
+                    {/* Main Image */}
                     <div className="mb-8">
                         <label className="block text-sm font-medium text-gray-700 mb-2">Main Product Image <span className="text-red-500">*</span></label>
                         <MediaPicker value={formData.imageUrl} onChange={(url) => setFormData(prev => ({...prev, imageUrl: url}))} type="image" />
                     </div>
+
+                    {/* Gallery Grid Sorter */}
                     <div className="mb-6">
-                         <div className="flex justify-between mb-2">
-                             <label className="block text-sm font-medium text-gray-700">Gallery Images</label>
-                             <button type="button" onClick={addGalleryImage} className="text-sm text-blue-600 hover:underline">+ Add Image</button>
-                         </div>
-                         <div className="space-y-3">
+                         <label className="block text-sm font-medium text-gray-700 mb-2">Gallery Images (Drag to sort)</label>
+                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
                              {formData.galleryImages?.map((img, idx) => (
-                                 <div key={idx} className="flex gap-2 items-center">
-                                     <div className="flex-1">
-                                        <MediaPicker value={img} onChange={(url) => updateGalleryImage(idx, url)} type="image" placeholder={`Gallery Image ${idx+1}`} />
-                                     </div>
-                                     <button type="button" onClick={() => removeGalleryImage(idx)} className="text-red-500 p-2">×</button>
+                                 <div 
+                                    key={idx} 
+                                    draggable
+                                    onDragStart={() => handleSortStart(idx)}
+                                    onDragOver={(e) => e.preventDefault()}
+                                    onDrop={() => handleSortDrop(idx)}
+                                    className="relative group aspect-square bg-gray-100 rounded-lg border border-gray-200 overflow-hidden cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
+                                 >
+                                     <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover"/>
+                                     {/* Remove Button */}
+                                     <button 
+                                        type="button" 
+                                        onClick={() => removeGalleryImage(idx)} 
+                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                        title="Remove Image"
+                                     >
+                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                     </button>
+                                     {/* Index Badge */}
+                                     <div className="absolute bottom-1 left-1 bg-black/50 text-white text-[10px] px-1.5 rounded">{idx + 1}</div>
                                  </div>
                              ))}
+
+                             {/* Upload Drop Zone */}
+                             <div 
+                                className={`aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors hover:bg-blue-50 hover:border-blue-400 ${isUploading ? 'bg-blue-50 border-blue-400' : 'border-gray-300'}`}
+                                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                onDrop={handleFileDrop}
+                                onClick={() => fileInputRef.current?.click()}
+                             >
+                                <input 
+                                    type="file" 
+                                    multiple 
+                                    accept="image/*" 
+                                    className="hidden" 
+                                    ref={fileInputRef} 
+                                    onChange={(e) => handleGalleryUpload(e.target.files)}
+                                />
+                                {isUploading ? (
+                                    <div className="animate-pulse flex flex-col items-center">
+                                        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                                        <span className="text-xs text-blue-600 font-medium">Uploading...</span>
+                                    </div>
+                                ) : (
+                                    <div className="text-center p-2">
+                                        <svg className="w-8 h-8 text-gray-400 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                                        <span className="text-xs font-medium text-blue-600">Add Images</span>
+                                        <p className="text-[10px] text-gray-400 mt-1 hidden sm:block">Drag & Drop</p>
+                                    </div>
+                                )}
+                             </div>
                          </div>
                     </div>
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Video URL</label>
                         <MediaPicker value={formData.videoUrl || ''} onChange={(url) => setFormData(prev => ({...prev, videoUrl: url}))} type="video" placeholder="Select or paste video URL" />

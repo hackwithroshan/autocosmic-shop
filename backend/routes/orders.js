@@ -6,7 +6,7 @@ const User = require('../models/User'); // Import User model
 const authMiddleware = require('../middleware/authMiddleware');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs'); // Import bcrypt for password hashing
-const { sendOrderConfirmation } = require('../utils/emailService'); // Import email service
+// const { sendOrderConfirmation } = require('../utils/emailService'); // REMOVED: Using Vercel for emails
 const router = express.Router();
 
 // Initialize Razorpay
@@ -58,28 +58,11 @@ router.put('/:id', authMiddleware(true), async (req, res) => {
     }
 });
 
-// Resend Order Email (Admin Only)
+// Resend Order Email (Admin Only) - Kept for manual admin triggers if needed via backend logic in future
 router.post('/:id/resend-email', authMiddleware(true), async (req, res) => {
-    try {
-        // Fetch order with populated product details for the invoice
-        const order = await Order.findById(req.params.id).populate('items.productId', 'name imageUrl price sku');
-        
-        if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
-        }
-
-        // Send the email (await it to catch errors)
-        // Capture the result which might contain the preview URL for test accounts
-        const result = await sendOrderConfirmation(order);
-
-        res.json({ 
-            message: `Email sent successfully to ${order.customerEmail}`,
-            previewUrl: result?.previewUrl // Pass this back to frontend
-        });
-    } catch (err) {
-        console.error("Resend email error:", err);
-        res.status(500).json({ message: 'Failed to send email', error: err.message });
-    }
+    // Currently disabled on backend side to enforce Vercel usage logic
+    // In a full migration, this would call an external service or be removed.
+    res.status(200).json({ message: 'Email sending is handled by Frontend/Vercel.' });
 });
 
 // Get orders for the logged-in user
@@ -207,13 +190,13 @@ router.post('/', async (req, res) => {
 
     const savedOrder = await newOrder.save();
 
-    // Send Email Async (Don't block response)
-    // We pass the passwordUsed only if we just created the account so we can tell them in the email.
-    sendOrderConfirmation(savedOrder, accountCreated ? passwordUsed : null);
+    // NOTE: We removed sendOrderConfirmation() from here.
+    // The Frontend will handle sending the email via Vercel API.
 
     res.status(201).json({ 
         ...savedOrder.toJSON(), 
-        accountCreated: accountCreated 
+        accountCreated: accountCreated,
+        passwordUsed: passwordUsed // Send back password so frontend can include in email
     });
 
   } catch (err) {

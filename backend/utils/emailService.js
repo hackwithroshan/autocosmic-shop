@@ -1,5 +1,5 @@
 
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 const fs = require('fs');
 const path = require('path');
 
@@ -10,14 +10,33 @@ try {
     console.error("❌ CRITICAL: 'pdfkit' module is missing. PDF Invoices will NOT work.");
 }
 
-// Initialize Resend with your API Key
-// NOTE: Ideally put this in process.env.RESEND_API_KEY
-const RESEND_API_KEY = process.env.RESEND_API_KEY || 're_j1yD2n3u_E93K8Y4cJc1J4JUb144HnPNv';
-const resend = new Resend(RESEND_API_KEY);
+// --- SMTP Configuration (Gmail / Hostinger / cPanel) ---
+// IMPORTANT: Set these in your .env file or Railway/Vercel Variables
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+const SMTP_PORT = process.env.SMTP_PORT || 465; // 465 for SSL, 587 for TLS
+const SMTP_USER = process.env.SMTP_USER; // Your email (e.g., yourname@gmail.com)
+const SMTP_PASS = process.env.SMTP_PASS; // Your App Password (Not login password)
 
-// Configuration for Sender
-// In Resend Free Tier, you MUST use 'onboarding@resend.dev' unless you verify a domain.
-const SENDER_EMAIL = process.env.SENDER_EMAIL || 'onboarding@resend.dev';
+// Check if credentials exist
+if (!SMTP_USER || !SMTP_PASS) {
+    console.warn("⚠️ WARNING: SMTP Credentials missing. Emails will NOT be sent.");
+} else {
+    console.log(`📧 SMTP Service Initialized for: ${SMTP_USER}`);
+}
+
+// Create Transporter
+const transporter = nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: Number(SMTP_PORT) === 465, // true for 465, false for other ports
+    auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+    },
+});
+
+// Sender Info
+const SENDER_EMAIL = `"Ladies Smart Choice" <${SMTP_USER}>`;
 
 // Helper: Generate PDF Invoice Buffer
 const generateInvoicePDF = (order) => {
@@ -72,6 +91,7 @@ const generateInvoicePDF = (order) => {
 
             order.items.forEach(item => {
                 position += 30;
+                // Handle populated product or deleted product
                 const productName = item.productId && item.productId.name ? item.productId.name : "Product Item";
                 const productPrice = item.productId && item.productId.price ? item.productId.price : 0;
                 
@@ -121,7 +141,7 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
                     <p>We created an account for you to track your order.</p>
                     <p><strong>Username:</strong> ${order.customerEmail}</p>
                     <p><strong>Password:</strong> ${accountPassword}</p>
-                    <a href="https://${process.env.FRONTEND_URL || 'apexnucleus.com'}/login">Login here</a>
+                    <a href="https://${process.env.FRONTEND_URL || 'yourwebsite.com'}/login">Login here</a>
                 </div>
             `;
         }
@@ -132,26 +152,22 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
             </div>
         `;
 
-        console.log(`📤 Sending email via Resend to: ${order.customerEmail}`);
+        console.log(`📤 Sending email via Nodemailer (SMTP)...`);
+        console.log(`   To: ${order.customerEmail}`);
         
-        const { data, error } = await resend.emails.send({
+        const info = await transporter.sendMail({
             from: SENDER_EMAIL,
-            to: order.customerEmail, // NOTE: In Resend Free Tier, this must be your verified email
+            to: order.customerEmail, 
             subject: subject,
             html: html,
             attachments: attachments
         });
 
-        if (error) {
-            console.error("❌ Resend Error:", error);
-            return { success: false, error: error };
-        }
-
-        console.log(`✅ Email Sent Successfully! ID: ${data.id}`);
-        return { success: true, messageId: data.id };
+        console.log(`✅ Email Sent Successfully! Message ID: ${info.messageId}`);
+        return { success: true, messageId: info.messageId };
 
     } catch (error) {
-        console.error("❌ Unexpected Email Error:", error);
+        console.error("❌ SMTP Email Error:", error);
         return { success: false, error: error.message };
     }
 };
@@ -159,7 +175,7 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
 // --- Function: Send Welcome Email ---
 const sendWelcomeEmail = async (user) => {
     try {
-        const { data, error } = await resend.emails.send({
+        const info = await transporter.sendMail({
             from: SENDER_EMAIL,
             to: user.email,
             subject: "Welcome to the Family!",
@@ -169,24 +185,24 @@ const sendWelcomeEmail = async (user) => {
                     <p>We are thrilled to have you with us.</p>
                     <p>Discover the latest trends in women's fashion.</p>
                     <br/>
-                    <a href="https://${process.env.FRONTEND_URL || 'apexnucleus.com'}" style="background: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Start Shopping</a>
+                    <a href="https://${process.env.FRONTEND_URL || 'yourwebsite.com'}" style="background: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Start Shopping</a>
                 </div>
             `
         });
-
-        if (error) console.error("❌ Resend Welcome Error:", error);
-        else console.log(`✅ Welcome Email Sent: ${data.id}`);
         
-        return { success: !error };
+        console.log(`✅ Welcome Email Sent: ${info.messageId}`);
+        return { success: true };
     } catch (error) {
         console.error("❌ Failed to send Welcome Email:", error);
+        return { success: false, error: error.message };
     }
 };
 
 // --- Function: Send Password Reset OTP ---
 const sendPasswordResetEmail = async (email, otp) => {
     try {
-        const { data, error } = await resend.emails.send({
+        console.log(`📤 Sending OTP to ${email}`);
+        const info = await transporter.sendMail({
             from: SENDER_EMAIL,
             to: email,
             subject: "Reset Your Password - OTP",
@@ -202,17 +218,12 @@ const sendPasswordResetEmail = async (email, otp) => {
                 </div>
             `
         });
-
-        if (error) {
-            console.error("❌ Resend OTP Error:", error);
-            return { success: false, error };
-        }
         
-        console.log(`✅ OTP Email Sent: ${data.id}`);
+        console.log(`✅ OTP Email Sent Successfully: ${info.messageId}`);
         return { success: true };
     } catch (error) {
         console.error("❌ Failed to send OTP Email:", error);
-        throw error;
+        return { success: false, error: error.message };
     }
 };
 

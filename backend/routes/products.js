@@ -117,5 +117,34 @@ router.delete('/:id', authMiddleware(true), async (req, res) => {
   }
 });
 
+// Add a Review (Public)
+router.post('/:id/reviews', async (req, res) => {
+  const { name, rating, comment } = req.body;
+  
+  if (!rating || !comment) {
+      return res.status(400).json({ message: 'Rating and comment are required' });
+  }
+
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    const newReview = {
+      name: name || 'Anonymous',
+      rating: Number(rating),
+      comment,
+      date: new Date()
+    };
+
+    product.reviews.unshift(newReview); // Add to beginning
+    await product.save();
+
+    res.json(newReview);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 
 module.exports = router;

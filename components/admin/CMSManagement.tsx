@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SliderSettings from './SliderSettings';
 import BlogEditor from './BlogEditor';
 import PageEditor from './PageEditor';
@@ -9,8 +9,20 @@ import CollectionSettings from './CollectionSettings';
 
 type CMSTab = 'slider' | 'collections' | 'blogs' | 'pages' | 'videos' | 'reviews';
 
-const CMSManagement: React.FC<{ token: string | null }> = ({ token }) => {
-    const [activeTab, setActiveTab] = useState<CMSTab>('collections');
+interface CMSManagementProps {
+    token: string | null;
+    initialTab?: CMSTab;
+}
+
+const CMSManagement: React.FC<CMSManagementProps> = ({ token, initialTab }) => {
+    const [activeTab, setActiveTab] = useState<CMSTab>(initialTab || 'collections');
+
+    // Sync if initialTab changes
+    useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
 
     const TabButton = ({ id, label }: { id: CMSTab, label: string }) => (
         <button 
@@ -30,9 +42,9 @@ const CMSManagement: React.FC<{ token: string | null }> = ({ token }) => {
             {/* Tabs */}
             <div className="border-b border-gray-200 overflow-x-auto">
                 <div className="flex space-x-4 min-w-max">
-                    <TabButton id="collections" label="Collections" />
-                    <TabButton id="slider" label="Homepage Slider" />
+                    <TabButton id="collections" label="Collections (Categories)" />
                     <TabButton id="videos" label="Shop Videos" />
+                    <TabButton id="slider" label="Homepage Slider" />
                     <TabButton id="reviews" label="Testimonials" />
                     <TabButton id="blogs" label="Blog Posts" />
                     <TabButton id="pages" label="Static Pages" />
