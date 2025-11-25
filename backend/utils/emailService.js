@@ -1,9 +1,12 @@
 
-// Use node-fetch for compatibility if global fetch is missing (Node < 18)
-const fetch = global.fetch || require('node-fetch');
-
+// Use native fetch (available in Node 18+)
 const triggerEmailAPI = async (payload) => {
     try {
+        if (!global.fetch) {
+            console.error("❌ Node Version Error: global.fetch is not defined. Please use Node.js 18 or higher.");
+            return { success: false, error: "Server Configuration Error: Node 18+ required" };
+        }
+
         // Frontend URL from Railway Environment Variables
         const frontendUrl = process.env.FRONTEND_URL; 
         
@@ -18,7 +21,7 @@ const triggerEmailAPI = async (payload) => {
 
         console.log(`🚀 Triggering Email via Vercel: ${apiUrl}`);
         
-        // Simple timeout logic without AbortController for maximum compatibility
+        // Simple timeout logic
         const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Email API Timeout')), 10000)
         );
