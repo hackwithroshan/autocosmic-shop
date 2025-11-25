@@ -14,39 +14,48 @@ const triggerEmailAPI = async (payload) => {
         const baseUrl = frontendUrl.replace(/\/$/, '');
         const apiUrl = `${baseUrl}/api/send-email`;
 
-        console.log(`🚀 Attempting to trigger email...`);
+        console.log(`🚀 Attempting to trigger email via Vercel API...`);
         console.log(`🎯 Target URL: ${apiUrl}`);
-        console.log(`📧 Recipient: ${payload.to}`);
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'User-Agent': 'Railway-Backend' 
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const contentType = response.headers.get("content-type");
         
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error(`❌ Vercel API Failed: ${response.status} ${response.statusText}`);
-            console.error(`⚠️ Error Details: ${errText}`);
-            
-            if (response.status === 404) {
-                console.error("💡 Hint: The URL is returning 404. Check 'vercel.json' routing or if deployment is successful.");
-            }
-            if (errText.includes("<!DOCTYPE html>")) {
-                console.error("💡 Hint: Vercel returned HTML instead of JSON. This means the request hit the React App instead of the API. Check 'vercel.json' rewrites.");
-            }
-            
-            throw new Error(`API Error: ${response.status}`);
-        }
+        // Use AbortController for Timeout (10 seconds)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-        const data = await response.json();
-        console.log("✅ Vercel Email API Success:", data);
-        return { success: true, data };
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Railway-Backend' 
+                },
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+
+            const contentType = response.headers.get("content-type");
+            
+            if (!response.ok) {
+                const errText = await response.text();
+                console.error(`❌ Vercel API Failed: ${response.status} ${response.statusText}`);
+                console.error(`⚠️ Error Details: ${errText}`);
+                
+                return { success: false, error: `Email API returned ${response.status}: ${errText.substring(0, 100)}` };
+            }
+
+            const data = await response.json();
+            console.log("✅ Vercel Email API Success:", data);
+            return { success: true, data };
+
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            if (fetchError.name === 'AbortError') {
+                console.error("❌ Email API Timeout: Vercel function took too long to respond.");
+                return { success: false, error: "Email service timeout. Please try again." };
+            }
+            throw fetchError;
+        }
 
     } catch (error) {
         console.error("❌ EMAIL SERVICE CRASH:", error.message);

@@ -25,6 +25,16 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
   const [forgotMessage, setForgotMessage] = useState('');
   const [forgotError, setForgotError] = useState('');
 
+  // Helper to format network errors
+  const handleNetworkError = (err: any, setErrState: (msg: string) => void) => {
+      console.error("Network Error:", err);
+      if (err.message === 'Failed to fetch') {
+          setErrState('Cannot connect to server. Please check your internet or try again later.');
+      } else {
+          setErrState(err.message || 'An unexpected error occurred.');
+      }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -44,11 +54,15 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
-        throw new Error(`Server Error: ${response.status}. The backend might be down.`);
+        // If we get HTML (like a 404 page from Vercel), throw specific error
+        if (response.status === 404) {
+             throw new Error("Backend API not found (404). Please check VITE_API_URL.");
+        }
+        throw new Error(`Server error: ${response.status}`);
       }
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed. Please check your credentials.');
+        throw new Error(data.message || 'Login failed.');
       }
       
       setToken(data.token);
@@ -61,12 +75,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       }
 
     } catch (err: any) {
-      console.error("Login error:", err);
-      if (err.message === 'Failed to fetch') {
-        setError('Network Error: Cannot connect to server. Please ensure the backend is running.');
-      } else {
-        setError(err.message);
-      }
+      handleNetworkError(err, setError);
     } finally {
       setLoading(false);
     }
@@ -86,16 +95,23 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
               body: JSON.stringify({ email: forgotEmail }) 
           });
           
-          const data = await res.json();
+          let data;
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+              data = await res.json();
+          } else {
+              if (res.status === 404) throw new Error("API Route Not Found. Check Backend Deployment.");
+              throw new Error(`Server returned ${res.status}`);
+          }
           
           if (res.ok) {
               setForgotStep(2);
               setForgotMessage(`An OTP has been sent to ${forgotEmail}.`);
           } else {
-              setForgotError(data.message || 'Failed to process request');
+              setForgotError(data.message || 'Failed to send OTP');
           }
       } catch (err: any) {
-          setForgotError(err.message);
+          handleNetworkError(err, setForgotError);
       } finally {
           setForgotLoading(false);
       }
@@ -128,7 +144,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
               setForgotError(data.message || 'Failed to reset password');
           }
       } catch (err: any) {
-          setForgotError(err.message);
+          handleNetworkError(err, setForgotError);
       } finally {
           setForgotLoading(false);
       }
@@ -256,6 +272,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
         </div>
       </div>
 
+      {/* Forgot Password Modal */}
       {isForgotModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 backdrop-blur-sm">
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
