@@ -2,15 +2,14 @@
 const express = require('express');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
-const User = require('../models/User'); // Import User model
+const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs'); // Import bcrypt for password hashing
-const { sendOrderConfirmation } = require('../utils/emailService'); // Import email service
+const bcrypt = require('bcryptjs');
+const { sendOrderConfirmation } = require('../utils/emailService'); // Enabled
 const router = express.Router();
 
 // Initialize Razorpay
-// We use the keys provided by the user as fallback if process.env is not set
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID || 'rzp_test_RQTvH0CUj36MkY';
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || 'JBTBuMVLAChX2Da7wINyZj9L';
 
@@ -31,7 +30,7 @@ router.get('/', authMiddleware(true), async (req, res) => {
   try {
     const orders = await Order.find()
         .sort({ date: -1 })
-        .populate('items.productId', 'name imageUrl price sku'); // Populate product info
+        .populate('items.productId', 'name imageUrl price sku');
     res.json(orders);
   } catch (err) {
     console.error(err.message);
@@ -61,24 +60,14 @@ router.put('/:id', authMiddleware(true), async (req, res) => {
 // Resend Order Email (Admin Only)
 router.post('/:id/resend-email', authMiddleware(true), async (req, res) => {
     try {
-        // Fetch order with populated product details for the invoice
-        const order = await Order.findById(req.params.id).populate('items.productId', 'name imageUrl price sku');
+        const order = await Order.findById(req.params.id).populate('items.productId');
+        if(!order) return res.status(404).json({ message: 'Order not found' });
         
-        if (!order) {
-            return res.status(404).json({ message: 'Order not found' });
-        }
-
-        // Send the email (await it to catch errors)
-        // Capture the result which might contain the preview URL for test accounts
-        const result = await sendOrderConfirmation(order);
-
-        res.json({ 
-            message: `Email sent successfully to ${order.customerEmail}`,
-            previewUrl: result?.previewUrl // Pass this back to frontend
-        });
-    } catch (err) {
-        console.error("Resend email error:", err);
-        res.status(500).json({ message: 'Failed to send email', error: err.message });
+        await sendOrderConfirmation(order);
+        res.json({ message: 'Email sent successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to send email' });
     }
 });
 
@@ -97,7 +86,7 @@ router.get('/my-orders', authMiddleware(), async (req, res) => {
 
 // --- RAZORPAY ROUTES ---
 
-// 1. Create Razorpay Order (Pre-payment)
+// 1. Create Razorpay Order
 router.post('/razorpay-order', async (req, res) => {
     if (!razorpayInstance) {
         return res.status(500).json({ message: "Payment gateway not initialized. Contact admin." });
@@ -107,14 +96,13 @@ router.post('/razorpay-order', async (req, res) => {
         const { amount, currency } = req.body;
         
         const options = {
-            amount: Math.round(amount * 100), // Amount in paise (must be integer)
+            amount: Math.round(amount * 100),
             currency: currency || "INR",
             receipt: `receipt_${Date.now()}`,
         };
 
         const order = await razorpayInstance.orders.create(options);
 
-        // Return order details and the PUBLIC key_id so frontend can use it
         res.json({
             order_id: order.id,
             amount: order.amount,
@@ -127,7 +115,7 @@ router.post('/razorpay-order', async (req, res) => {
     }
 });
 
-// 2. Create/Save Order (Post-payment Verification) & Guest Checkout Handling
+// 2. Create/Save Order
 router.post('/', async (req, res) => {
   const { items, total, customerName, customerEmail, customerPhone, shippingAddress, userId, paymentInfo } = req.body;
 
@@ -137,7 +125,6 @@ router.post('/', async (req, res) => {
 
   let orderStatus = 'Pending';
 
-  // Verify Payment if paymentInfo is provided (Razorpay flow)
   if (paymentInfo && razorpayInstance) {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = paymentInfo;
       
@@ -147,9 +134,8 @@ router.post('/', async (req, res) => {
         .digest('hex');
 
       if (generated_signature === razorpay_signature) {
-          orderStatus = 'Processing'; // Payment Verified
+          orderStatus = 'Processing';
       } else {
-          console.error("Signature Mismatch: ", generated_signature, " vs ", razorpay_signature);
           return res.status(400).json({ message: 'Payment verification failed. Invalid signature.' });
       }
   }
@@ -160,13 +146,10 @@ router.post('/', async (req, res) => {
 
   try {
     // --- Automatic Account Creation Logic ---
-    // If user was not logged in (no userId), check if email exists.
     if (!finalUserId && customerEmail) {
         let user = await User.findOne({ email: customerEmail });
         
         if (!user) {
-            // Create new user
-            // Default password is the mobile number provided
             if (customerPhone) {
                 passwordUsed = customerPhone;
                 const salt = await bcrypt.genSalt(10);
@@ -182,10 +165,8 @@ router.post('/', async (req, res) => {
                 await user.save();
                 finalUserId = user._id;
                 accountCreated = true;
-                console.log(`Auto-created account for ${customerEmail}`);
             }
         } else {
-            // Link to existing user
             finalUserId = user._id;
         }
     }
@@ -201,19 +182,22 @@ router.post('/', async (req, res) => {
         quantity: item.quantity
       })),
       total,
-      status: orderStatus,
-      // paymentDetails: paymentInfo 
+      status: orderStatus
     });
 
     const savedOrder = await newOrder.save();
 
-    // Send Email Async (Don't block response)
-    // We pass the passwordUsed only if we just created the account so we can tell them in the email.
-    sendOrderConfirmation(savedOrder, accountCreated ? passwordUsed : null);
+    // Populate items for email
+    const populatedOrder = await Order.findById(savedOrder._id).populate('items.productId');
+
+    // Send Email from Backend
+    // The backend now handles the trigger to Vercel API
+    await sendOrderConfirmation(populatedOrder, passwordUsed);
 
     res.status(201).json({ 
         ...savedOrder.toJSON(), 
-        accountCreated: accountCreated 
+        accountCreated: accountCreated,
+        passwordUsed: passwordUsed
     });
 
   } catch (err) {

@@ -17,7 +17,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
-  // Initialize form with user data if available, otherwise empty
   const [formData, setFormData] = useState({
     firstName: user?.name?.split(' ')[0] || '',
     lastName: user?.name?.split(' ')[1] || '',
@@ -31,7 +30,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
 
   useEffect(() => {
       if (cart.length > 0) {
-          // Meta Pixel: Initiate Checkout
           trackEvent('InitiateCheckout', {
               content_ids: cart.map(item => item.id),
               content_type: 'product',
@@ -52,7 +50,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
     setLoading(true);
 
     try {
-        // 1. Create Order on Backend (Get Order ID and Key)
         const orderResponse = await fetch('/api/orders/razorpay-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -69,7 +66,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
 
         const { order_id, amount, currency, key_id } = await orderResponse.json();
 
-        // 2. Options for Razorpay Modal
         const options = {
             key: key_id, 
             amount: amount,
@@ -79,14 +75,12 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             image: "https://cdn-icons-png.flaticon.com/512/4440/4440935.png", 
             order_id: order_id,
             handler: async function (response: any) {
-                // 3. Payment Success
-                // Meta Pixel: Track Purchase
                 trackEvent('Purchase', {
                     value: cartTotal,
                     currency: 'INR',
                     content_ids: cart.map(item => item.id),
                     content_type: 'product',
-                    order_id: order_id // Use Razorpay order ID for matching
+                    order_id: order_id
                 });
 
                 await verifyAndPlaceOrder({
@@ -108,7 +102,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             }
         };
 
-        // 4. Open Razorpay
         const rzp1 = new (window as any).Razorpay(options);
         rzp1.on('payment.failed', function (response: any){
             alert(`Payment Failed: ${response.error.description}`);
@@ -125,7 +118,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
 
   const verifyAndPlaceOrder = async (paymentInfo: any) => {
       const orderData = {
-        userId: user?.id, // Might be undefined if guest
+        userId: user?.id,
         customerName: `${formData.firstName} ${formData.lastName}`,
         customerEmail: formData.email,
         customerPhone: formData.phone,
@@ -137,7 +130,7 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
         },
         items: cart,
         total: cartTotal,
-        paymentInfo: paymentInfo // Send payment details for verification
+        paymentInfo: paymentInfo
       };
 
       try {
@@ -153,16 +146,16 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
         }
 
         const responseData = await response.json();
+        
         clearCart();
         
-        // Success Feedback
         const successDiv = document.createElement('div');
         successDiv.innerHTML = `
             <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 10000;">
                 <div style="background: white; padding: 40px; border-radius: 10px; text-align: center; max-width: 400px;">
                     <svg style="width: 60px; height: 60px; color: green; margin: 0 auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
                     <h2 style="margin-top: 20px; font-size: 24px; color: #333;">Order Placed!</h2>
-                    <p style="color: #666; margin-top: 10px;">A confirmation email has been sent to <b>${formData.email}</b>.</p>
+                    <p style="color: #666; margin-top: 10px;">Invoice sent to <b>${formData.email}</b>.</p>
                     ${responseData.accountCreated ? `<div style="margin-top:15px; padding: 10px; background: #f0fdf4; color: #166534; border-radius: 5px; font-size: 14px;">An account has been created for you.<br/>Password: Your Mobile Number</div>` : ''}
                 </div>
             </div>
@@ -174,7 +167,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             if (user) {
                 navigate('/dashboard');
             } else {
-                // If guest, maybe redirect to login or home
                 navigate('/');
             }
         }, 4000);
@@ -213,7 +205,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           
-          {/* Shipping Form */}
           <div className="order-2 lg:order-1">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Shipping Information</h2>
             <form id="checkout-form" onSubmit={handleRazorpayPayment} className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
@@ -258,7 +249,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             </form>
           </div>
 
-          {/* Order Summary */}
           <div className="order-1 lg:order-2 bg-white p-6 rounded-lg shadow-md h-fit lg:sticky lg:top-24">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Order Summary</h2>
             <ul className="divide-y divide-gray-200 mb-4 max-h-64 overflow-y-auto">

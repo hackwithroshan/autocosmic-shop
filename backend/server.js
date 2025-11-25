@@ -4,6 +4,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
+// --- GLOBAL ERROR HANDLERS (Prevent Crash) ---
+process.on('uncaughtException', (err) => {
+  console.error('🚨 UNCAUGHT EXCEPTION:', err);
+  // Keep running if possible, but log it critical
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 UNHANDLED REJECTION:', reason);
+});
+
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
@@ -17,11 +27,26 @@ const blogRoutes = require('./routes/blogs');
 const pageRoutes = require('./routes/pages');
 const contentRoutes = require('./routes/content');
 const collectionRoutes = require('./routes/collections');
-const feedRoutes = require('./routes/feed'); // New Feed Route
+const feedRoutes = require('./routes/feed'); 
 const seedDatabase = require('./seed');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+
+// --- HEALTH CHECK (CRITICAL FOR RAILWAY) ---
+// Defined immediately to ensure Railway gets a 200 OK instantly
+app.get('/', (req, res) => {
+  res.status(200).send('AutoCosmic Backend Server is Running.');
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+      status: 'ok', 
+      message: 'Backend is reachable', 
+      dbState: mongoose.connection.readyState,
+      uptime: process.uptime()
+  });
+});
 
 // Middleware
 const corsOptions = {
@@ -42,30 +67,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const MONGO_URI = process.env.MONGO_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/autocosmic';
-
-const connectDB = async () => {
-  try {
-    await mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 5000
-    });
-    console.log('MongoDB Connected Successfully');
-  } catch (err) {
-    console.error('MongoDB Connection Failed:', err.message);
-  }
-};
-
-connectDB();
-
 // --- API Routes ---
-app.get('/', (req, res) => {
-  res.send('AutoCosmic Backend Server is Running. Access API at /api');
-});
-
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Backend is reachable' });
-});
-
 app.get('/api/seed', async (req, res) => {
     try {
         await seedDatabase();
@@ -88,15 +90,42 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/collections', collectionRoutes);
-app.use('/api/feed', feedRoutes); // Register Feed Route
+app.use('/api/feed', feedRoutes);
 
+// Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
+// --- Start Server & Connect DB ---
+// 1. Start Listening immediately to pass Railway Health Check
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server is listening on port ${PORT}`);
+  console.log("--- DIAGNOSTICS ---");
+  console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+  console.log(`FRONTEND_URL: ${process.env.FRONTEND_URL || "MISSING (Email triggers will fail)"}`);
+  console.log("-------------------");
+});
+
+// 2. Configure Keep-Alive to prevent Railway 502 Errors
+server.keepAliveTimeout = 120 * 1000;
+server.headersTimeout = 120 * 1000;
+
+// 3. Connect to MongoDB in background
+const MONGO_URI = process.env.MONGO_URI || process.env.DATABASE_URL || 'mongodb://localhost:27017/autocosmic';
+
+// Log masked URI for debugging
+const maskedURI = MONGO_URI.replace(/:([^:@]+)@/, ':****@');
+console.log(`Connecting to MongoDB: ${maskedURI}`);
+
+mongoose.connect(MONGO_URI, {
+  serverSelectionTimeoutMS: 5000
+})
+.then(() => console.log('✅ MongoDB Connected Successfully'))
+.catch(err => {
+    console.error('❌ MongoDB Connection Failed:', err.message);
+    // Do not exit process, let the server stay alive for health checks
 });
 
 module.exports = app;

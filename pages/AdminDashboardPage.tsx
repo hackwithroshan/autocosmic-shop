@@ -23,7 +23,8 @@ interface AdminDashboardPageProps {
 
 const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ user, logout }) => {
   const [currentView, setCurrentView] = useState<AdminView>('dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // Initialize sidebar closed on mobile, open on desktop
+  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 1024);
   const token = localStorage.getItem('token');
 
   const renderView = () => {
@@ -77,22 +78,26 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ user, logout })
   };
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
+    <div className="flex h-screen bg-gray-100 font-sans overflow-hidden">
       <AdminSidebar 
         currentView={currentView} 
         setCurrentView={setCurrentView} 
         isOpen={isSidebarOpen} 
         setIsOpen={setIsSidebarOpen} 
       />
-      <div className="flex-1 flex flex-col overflow-hidden relative">
-        <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200 shadow-sm z-10 h-16">
+      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+        <header className="flex justify-between items-center p-4 bg-white border-b border-gray-200 shadow-sm z-10 h-16 flex-shrink-0">
           <div className="flex items-center">
-              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="text-gray-500 hover:text-gray-700 focus:outline-none lg:hidden mr-4">
+              <button 
+                onClick={() => setIsSidebarOpen(true)} 
+                className="text-gray-500 hover:text-gray-700 focus:outline-none lg:hidden mr-4 p-2 rounded-md hover:bg-gray-100 transition-colors"
+                aria-label="Open Menu"
+              >
                   <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M4 6H20M4 12H20M4 18H11Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
                   </svg>
               </button>
-              <h1 className="text-xl font-bold text-gray-800 capitalize">{getTitle()}</h1>
+              <h1 className="text-xl font-bold text-gray-800 capitalize truncate">{getTitle()}</h1>
           </div>
           <div className="flex items-center space-x-4">
              <div className="text-sm text-right hidden md:block">
@@ -108,7 +113,7 @@ const AdminDashboardPage: React.FC<AdminDashboardPageProps> = ({ user, logout })
             </Link>
           </div>
         </header>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-6 admin-scroll">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 sm:p-6 admin-scroll relative">
           {renderView()}
         </main>
       </div>
