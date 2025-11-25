@@ -17,7 +17,8 @@ const blogRoutes = require('./routes/blogs');
 const pageRoutes = require('./routes/pages');
 const contentRoutes = require('./routes/content');
 const collectionRoutes = require('./routes/collections');
-const feedRoutes = require('./routes/feed'); // New Feed Route
+const feedRoutes = require('./routes/feed'); 
+const emailRoutes = require('./routes/email'); // Import Email Route
 const seedDatabase = require('./seed');
 
 const app = express();
@@ -88,7 +89,8 @@ app.use('/api/blogs', blogRoutes);
 app.use('/api/pages', pageRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/collections', collectionRoutes);
-app.use('/api/feed', feedRoutes); // Register Feed Route
+app.use('/api/feed', feedRoutes);
+app.use('/api/send-email', emailRoutes); // Use Email Route
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

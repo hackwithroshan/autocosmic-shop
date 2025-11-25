@@ -2,7 +2,7 @@
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 
-// --- Vercel Serverless Function for Email & Invoice Generation ---
+// --- Vercel Serverless Function for Email using SMTP ---
 
 module.exports = async (req, res) => {
   // 1. Handle CORS
@@ -29,21 +29,22 @@ module.exports = async (req, res) => {
     return res.status(400).json({ message: 'Missing required email fields' });
   }
 
-  // 2. Configure Transporter
+  // Create Transporter inside the function context
+  // IMPORTANT: For Vercel functions, ensure env vars are added in Vercel Dashboard
   const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: Number(process.env.SMTP_PORT) || 465,
-    secure: Number(process.env.SMTP_PORT) === 465, // true for 465, false for other ports
+    host: process.env.EMAIL_HOST || 'smtp.hostinger.com',
+    port: process.env.EMAIL_PORT || 465,
+    secure: true,
     auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
+        user: process.env.EMAIL_USER || 'noreply@apexnucleus.com',
+        pass: process.env.EMAIL_PASS
+    }
   });
 
   try {
     const attachments = [];
 
-    // 3. Generate PDF Invoice if invoiceData is provided
+    // 2. Generate PDF Invoice if invoiceData is provided
     if (invoiceData) {
         const pdfBuffer = await new Promise((resolve) => {
             const doc = new PDFDocument({ size: 'A4', margin: 50 });
@@ -62,7 +63,7 @@ module.exports = async (req, res) => {
             doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, 100).lineTo(550, 100).stroke();
 
             // Order Details
-            const shortId = invoiceData.orderId ? invoiceData.orderId.substring(0, 8).toUpperCase() : 'N/A';
+            const shortId = invoiceData.orderId ? invoiceData.orderId.toString().substring(0, 8).toUpperCase() : 'N/A';
             doc.fontSize(10).text(`Invoice ID: ${shortId}`, 50, 115)
                .text(`Date: ${new Date().toLocaleDateString()}`, 50, 130)
                .text(`Total: Rs. ${invoiceData.total}`, 50, 145);
@@ -121,11 +122,11 @@ module.exports = async (req, res) => {
         });
     }
 
-    // 4. Send Email
+    // 3. Send Email using SMTP
     console.log(`[Vercel SMTP] Sending email to: ${to}`);
     
     const info = await transporter.sendMail({
-      from: `"Ladies Smart Choice" <${process.env.SMTP_USER}>`,
+      from: `"${process.env.EMAIL_FROM_NAME || 'Ladies Smart Choice'}" <${process.env.EMAIL_USER || 'noreply@apexnucleus.com'}>`,
       to: to,
       subject: subject,
       text: text || '',
@@ -137,7 +138,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({ success: true, messageId: info.messageId });
 
   } catch (error) {
-    console.error('[Vercel SMTP] Error:', error);
+    console.error('[Vercel SMTP] Unknown Error:', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 };

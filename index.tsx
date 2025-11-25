@@ -5,7 +5,7 @@ import App from './App';
 
 // --- Global Fetch Interceptor ---
 // This ensures that API calls point to the Railway backend URL,
-// EXCEPT for the email service which runs locally on Vercel.
+// EXCEPT for the email service which runs on Vercel Serverless.
 
 const originalFetch = window.fetch.bind(window);
 
@@ -17,15 +17,10 @@ const interceptedFetch = async (input: RequestInfo | URL, init?: RequestInit) =>
     let apiUrl = env.VITE_API_URL;
 
     // --- CRITICAL FIX: Sanitize API URL ---
-    if (typeof resource === 'string' && resource.startsWith('/api')) {
+    // We route all /api requests to the Backend Server (Railway),
+    // UNLESS it is '/api/send-email', which must be handled by Vercel (Serverless).
+    if (typeof resource === 'string' && resource.startsWith('/api') && !resource.startsWith('/api/send-email')) {
         
-        // EXCEPTION: Do NOT redirect the Vercel Email Function
-        // This ensures /api/send-email stays on Vercel
-        if (resource.startsWith('/api/send-email')) {
-            // Let it pass through naturally (relative path)
-            return originalFetch(resource, init);
-        }
-
         if (apiUrl) {
             // 1. Remove whitespace
             apiUrl = apiUrl.trim();

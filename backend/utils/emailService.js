@@ -10,33 +10,20 @@ try {
     console.error("❌ CRITICAL: 'pdfkit' module is missing. PDF Invoices will NOT work.");
 }
 
-// --- SMTP Configuration (Gmail / Hostinger / cPanel) ---
-// IMPORTANT: Set these in your .env file or Railway/Vercel Variables
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = process.env.SMTP_PORT || 465; // 465 for SSL, 587 for TLS
-const SMTP_USER = process.env.SMTP_USER; // Your email (e.g., yourname@gmail.com)
-const SMTP_PASS = process.env.SMTP_PASS; // Your App Password (Not login password)
-
-// Check if credentials exist
-if (!SMTP_USER || !SMTP_PASS) {
-    console.warn("⚠️ WARNING: SMTP Credentials missing. Emails will NOT be sent.");
-} else {
-    console.log(`📧 SMTP Service Initialized for: ${SMTP_USER}`);
-}
-
-// Create Transporter
+// --- SMTP Configuration (Hostinger) ---
 const transporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: Number(SMTP_PORT) === 465, // true for 465, false for other ports
+    host: process.env.EMAIL_HOST || 'smtp.hostinger.com',
+    port: process.env.EMAIL_PORT || 465,
+    secure: true, // true for 465, false for other ports
     auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-    },
+        user: process.env.EMAIL_USER || 'noreply@apexnucleus.com',
+        pass: process.env.EMAIL_PASS // Must be set in .env
+    }
 });
 
-// Sender Info
-const SENDER_EMAIL = `"Ladies Smart Choice" <${SMTP_USER}>`;
+const SENDER_EMAIL = process.env.EMAIL_USER || 'noreply@apexnucleus.com';
+
+console.log(`📧 SMTP Email Service Initialized (${process.env.EMAIL_HOST || 'smtp.hostinger.com'})`);
 
 // Helper: Generate PDF Invoice Buffer
 const generateInvoicePDF = (order) => {
@@ -152,12 +139,11 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
             </div>
         `;
 
-        console.log(`📤 Sending email via Nodemailer (SMTP)...`);
-        console.log(`   To: ${order.customerEmail}`);
+        console.log(`📤 Sending email via SMTP...`);
         
         const info = await transporter.sendMail({
-            from: SENDER_EMAIL,
-            to: order.customerEmail, 
+            from: `"${process.env.EMAIL_FROM_NAME || 'Ladies Smart Choice'}" <${SENDER_EMAIL}>`,
+            to: order.customerEmail,
             subject: subject,
             html: html,
             attachments: attachments
@@ -167,7 +153,7 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
         return { success: true, messageId: info.messageId };
 
     } catch (error) {
-        console.error("❌ SMTP Email Error:", error);
+        console.error("❌ Email Logic Error:", error);
         return { success: false, error: error.message };
     }
 };
@@ -176,7 +162,7 @@ const sendOrderConfirmation = async (order, accountPassword = null) => {
 const sendWelcomeEmail = async (user) => {
     try {
         const info = await transporter.sendMail({
-            from: SENDER_EMAIL,
+            from: `"${process.env.EMAIL_FROM_NAME || 'Ladies Smart Choice'}" <${SENDER_EMAIL}>`,
             to: user.email,
             subject: "Welcome to the Family!",
             html: `
@@ -189,7 +175,7 @@ const sendWelcomeEmail = async (user) => {
                 </div>
             `
         });
-        
+
         console.log(`✅ Welcome Email Sent: ${info.messageId}`);
         return { success: true };
     } catch (error) {
@@ -203,7 +189,7 @@ const sendPasswordResetEmail = async (email, otp) => {
     try {
         console.log(`📤 Sending OTP to ${email}`);
         const info = await transporter.sendMail({
-            from: SENDER_EMAIL,
+            from: `"${process.env.EMAIL_FROM_NAME || 'Ladies Smart Choice'}" <${SENDER_EMAIL}>`,
             to: email,
             subject: "Reset Your Password - OTP",
             html: `
@@ -218,7 +204,7 @@ const sendPasswordResetEmail = async (email, otp) => {
                 </div>
             `
         });
-        
+
         console.log(`✅ OTP Email Sent Successfully: ${info.messageId}`);
         return { success: true };
     } catch (error) {

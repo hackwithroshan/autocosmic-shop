@@ -4,7 +4,7 @@ import { Product, ProductVariant, Category } from '../../types';
 import { COLORS } from '../../constants';
 import MediaPicker from './MediaPicker';
 
-// Cloudinary Config (Should ideally be in env/constants, duplicated here for scope)
+// Cloudinary Config
 const CLOUDINARY_UPLOAD_PRESET = 'ladiesh';
 const CLOUDINARY_CLOUD_NAME = 'djbv48acj';
 const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
@@ -188,6 +188,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
         variants: product.variants || [],
         seoKeywords: product.seoKeywords || [],
         status: product.status || 'Active',
+        barcode: product.barcode || '',
       });
     } else {
         setFormData(initialFormData);
@@ -364,7 +365,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
   return (
     <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="flex flex-col w-full h-full bg-gray-100 relative">
       {/* Sticky Header */}
-      <div className="bg-black border-b border-gray-700 px-6 py-4 flex justify-between items-center shadow-md z-40 sticky top-0">
+      <div className="bg-black border-b border-gray-700 px-6 py-4 flex justify-between items-center shadow-md z-40 sticky top-0 w-full">
          <div className="flex items-center space-x-4">
              <button type="button" onClick={onCancel} className="text-gray-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg></button>
              <div>
@@ -379,9 +380,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 md:p-8">
-          <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20">
-              {/* LEFT CONTENT */}
-              <div className="lg:col-span-2 space-y-8">
+          {/* Full Width Grid Container */}
+          <div className="w-full grid grid-cols-1 lg:grid-cols-4 gap-8 pb-20">
+              
+              {/* LEFT CONTENT (3 Cols) */}
+              <div className="lg:col-span-3 space-y-8">
                  
                  {/* Basic Info */}
                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -389,9 +392,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                     <div className="space-y-5">
                         <div><label className="block text-sm font-semibold text-gray-700 mb-1">Title</label><input type="text" name="name" value={formData.name} onChange={handleNameChange} required className="block w-full border-gray-300 rounded-lg shadow-sm p-3 border"/></div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                              <div><label className="block text-sm font-medium text-gray-700 mb-1">Brand</label><input type="text" name="brand" value={formData.brand} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
                              <div><label className="block text-sm font-medium text-gray-700 mb-1">SKU</label><input type="text" name="sku" value={formData.sku} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
+                             <div><label className="block text-sm font-medium text-gray-700 mb-1">Barcode (ISBN/UPC)</label><input type="text" name="barcode" value={formData.barcode} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border" placeholder="0123456789"/></div>
                         </div>
 
                         <div>
@@ -406,7 +410,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                     </div>
                  </div>
 
-                 {/* Media Section with Enhanced Uploads */}
+                 {/* Media Section */}
                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">Media</h3>
                     
@@ -419,7 +423,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                     {/* Gallery Grid Sorter */}
                     <div className="mb-6">
                          <label className="block text-sm font-medium text-gray-700 mb-2">Gallery Images (Drag to sort)</label>
-                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-4">
                              {formData.galleryImages?.map((img, idx) => (
                                  <div 
                                     key={idx} 
@@ -481,13 +485,35 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                     </div>
                  </div>
 
-                 {/* Pricing */}
+                 {/* Pricing & Inventory */}
                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 className="text-lg font-bold text-gray-800 mb-4">Pricing & Inventory</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Selling Price</label><input type="number" name="price" value={formData.price} onChange={handleChange} required className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border font-bold"/></div>
-                         <div><label className="block text-sm font-medium text-gray-700 mb-1">MRP</label><input type="number" name="mrp" value={formData.mrp} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
-                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock</label><input type="number" name="stock" value={formData.stock} onChange={handleChange} required className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
+                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Selling Price <span className="text-red-500">*</span></label><input type="number" name="price" value={formData.price} onChange={handleChange} required className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border font-bold text-gray-900"/></div>
+                         <div><label className="block text-sm font-medium text-gray-700 mb-1">MRP (Compare at)</label><input type="number" name="mrp" value={formData.mrp} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
+                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity <span className="text-red-500">*</span></label><input type="number" name="stock" value={formData.stock} onChange={handleChange} required className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-t pt-6">
+                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Cost Price (Profit Calc)</label><input type="number" name="costPrice" value={formData.costPrice} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border text-gray-600"/></div>
+                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label><input type="number" name="taxRate" value={formData.taxRate} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border text-gray-600"/></div>
+                         <div><label className="block text-sm font-medium text-gray-700 mb-1">Low Stock Threshold</label><input type="number" name="lowStockThreshold" value={formData.lowStockThreshold} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border text-gray-600"/></div>
+                    </div>
+                    
+                    <div className="mt-4 flex items-center">
+                        <input type="checkbox" id="allowBackorders" name="allowBackorders" checked={formData.allowBackorders} onChange={handleChange} className="h-4 w-4 text-orange-600 border-gray-300 rounded"/>
+                        <label htmlFor="allowBackorders" className="ml-2 block text-sm text-gray-900">Allow Backorders (Continue selling when out of stock)</label>
+                    </div>
+                 </div>
+
+                 {/* Shipping Specifications */}
+                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">Shipping Specifications</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label><input type="number" name="weight" value={formData.weight} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Length (cm)</label><input type="number" name="dim_length" value={formData.dimensions?.length} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Width (cm)</label><input type="number" name="dim_width" value={formData.dimensions?.width} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
+                        <div><label className="block text-sm font-medium text-gray-700 mb-1">Height (cm)</label><input type="number" name="dim_height" value={formData.dimensions?.height} onChange={handleChange} className="block w-full border-gray-300 rounded-lg shadow-sm p-2.5 border"/></div>
                     </div>
                  </div>
 
@@ -496,45 +522,61 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-bold text-gray-800">Variants</h3>
                         <div className="flex items-center">
-                            <input type="checkbox" id="hasVariants" checked={formData.hasVariants} onChange={handleChange} name="hasVariants" className="mr-2" />
+                            <input type="checkbox" id="hasVariants" checked={formData.hasVariants} onChange={handleChange} name="hasVariants" className="mr-2 h-4 w-4" />
                             <label htmlFor="hasVariants">Enable Variants</label>
                         </div>
                     </div>
                     {formData.hasVariants && (
                         <div className="space-y-6">
                             {formData.variants?.map((variant, vIndex) => (
-                                <div key={vIndex} className="bg-gray-50 p-4 rounded-xl border">
-                                    <div className="flex justify-between mb-2"><input type="text" value={variant.name} onChange={(e) => updateVariantName(vIndex, e.target.value)} className="font-bold bg-transparent border-b mb-2" placeholder="Option Name"/><button type="button" onClick={() => removeVariant(vIndex)} className="text-red-500 text-xs">Remove</button></div>
+                                <div key={vIndex} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                    <div className="flex justify-between mb-2">
+                                        <input type="text" value={variant.name} onChange={(e) => updateVariantName(vIndex, e.target.value)} className="font-bold bg-transparent border-b border-gray-300 mb-2 focus:outline-none" placeholder="Option Name (e.g. Size)"/>
+                                        <button type="button" onClick={() => removeVariant(vIndex)} className="text-red-500 text-xs font-bold uppercase hover:text-red-700">Remove Option</button>
+                                    </div>
                                     {variant.options.map((opt, oIndex) => (
                                         <div key={oIndex} className="grid grid-cols-12 gap-2 items-center mb-2">
-                                            <div className="col-span-3"><input type="text" value={opt.value} onChange={(e) => updateVariantOption(vIndex, oIndex, 'value', e.target.value)} className="w-full border p-1 rounded text-sm" placeholder="Value"/></div>
-                                            <div className="col-span-2"><input type="number" value={opt.price} onChange={(e) => updateVariantOption(vIndex, oIndex, 'price', Number(e.target.value))} className="w-full border p-1 rounded text-sm" placeholder="Price"/></div>
-                                            <div className="col-span-2"><input type="number" value={opt.stock} onChange={(e) => updateVariantOption(vIndex, oIndex, 'stock', Number(e.target.value))} className="w-full border p-1 rounded text-sm" placeholder="Stock"/></div>
-                                            <div className="col-span-5"><MediaPicker value={opt.image || ''} onChange={(url) => updateVariantOption(vIndex, oIndex, 'image', url)} type="image" placeholder="Image" /></div>
+                                            <div className="col-span-3"><input type="text" value={opt.value} onChange={(e) => updateVariantOption(vIndex, oIndex, 'value', e.target.value)} className="w-full border border-gray-300 p-2 rounded text-sm" placeholder="Value (e.g. Red)"/></div>
+                                            <div className="col-span-2"><input type="number" value={opt.price} onChange={(e) => updateVariantOption(vIndex, oIndex, 'price', Number(e.target.value))} className="w-full border border-gray-300 p-2 rounded text-sm" placeholder="Price"/></div>
+                                            <div className="col-span-2"><input type="number" value={opt.stock} onChange={(e) => updateVariantOption(vIndex, oIndex, 'stock', Number(e.target.value))} className="w-full border border-gray-300 p-2 rounded text-sm" placeholder="Stock"/></div>
+                                            <div className="col-span-5"><MediaPicker value={opt.image || ''} onChange={(url) => updateVariantOption(vIndex, oIndex, 'image', url)} type="image" placeholder="Variant Image" /></div>
                                         </div>
                                     ))}
-                                    <button type="button" onClick={() => addVariantOption(vIndex)} className="text-sm text-blue-600">+ Add Option Value</button>
+                                    <button type="button" onClick={() => addVariantOption(vIndex)} className="text-sm text-blue-600 font-medium mt-2 hover:text-blue-800">+ Add Option Value</button>
                                 </div>
                             ))}
-                            <button type="button" onClick={addVariant} className="bg-blue-50 text-blue-600 px-3 py-1 rounded">+ Add Variant Type</button>
+                            <button type="button" onClick={addVariant} className="bg-white border border-blue-200 text-blue-600 px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-50 shadow-sm">+ Add Variant Type</button>
                         </div>
                     )}
                  </div>
               </div>
 
-              {/* RIGHT SIDEBAR */}
+              {/* RIGHT SIDEBAR (1 Col) */}
               <div className="space-y-8">
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                       <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Status</h3>
-                      <select name="status" value={formData.status} onChange={handleChange} className="block w-full border-gray-300 rounded-lg p-2 border"><option>Active</option><option>Draft</option><option>Archived</option></select>
+                      <select name="status" value={formData.status} onChange={handleChange} className="block w-full border-gray-300 rounded-lg p-2.5 border focus:ring-blue-500 focus:border-blue-500">
+                          <option>Active</option>
+                          <option>Draft</option>
+                          <option>Archived</option>
+                      </select>
+                      <div className="mt-3 text-xs text-gray-500">
+                          <p><span className="font-semibold text-green-600">Active:</span> Visible on website.</p>
+                          <p><span className="font-semibold text-gray-600">Draft:</span> Hidden from customers.</p>
+                      </div>
                   </div>
+
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                       <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Category</h3>
-                      <div className="flex justify-between mb-2"><label>Select Category</label><button type="button" onClick={() => setIsManageCatsOpen(true)} className="text-xs text-blue-600 hover:underline">Manage</button></div>
-                      <select name="category" value={formData.category} onChange={handleChange} className="block w-full border-gray-300 rounded-lg p-2 border">
+                      <div className="flex justify-between mb-2 items-center"><label className="text-xs text-gray-600">Select Category</label><button type="button" onClick={() => setIsManageCatsOpen(true)} className="text-xs text-blue-600 hover:underline font-medium">Manage Categories</button></div>
+                      <select name="category" value={formData.category} onChange={handleChange} className="block w-full border-gray-300 rounded-lg p-2.5 border focus:ring-blue-500 focus:border-blue-500">
                           <option value="" disabled>Select...</option>
                           {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
                       </select>
+                      <div className="mt-4">
+                          <label className="block text-xs text-gray-600 mb-1">Sub-Category</label>
+                          <input type="text" name="subCategory" value={formData.subCategory} onChange={handleChange} className="block w-full border-gray-300 rounded-lg p-2 border text-sm" placeholder="e.g. T-Shirts"/>
+                      </div>
                   </div>
                   
                   {/* Tags */}
@@ -545,14 +587,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                         value={tagInput} 
                         onChange={(e) => setTagInput(e.target.value)} 
                         onKeyDown={handleTagKeyDown}
-                        className="w-full border p-2 rounded text-sm" 
+                        className="w-full border border-gray-300 p-2.5 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500" 
                         placeholder="Enter tags (press Enter)"
                       />
                       <div className="flex flex-wrap gap-2 mt-3">
                           {formData.tags?.map((tag, idx) => (
-                              <span key={idx} className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs flex items-center">
+                              <span key={idx} className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-xs flex items-center border border-gray-200">
                                   {tag}
-                                  <button type="button" onClick={() => removeTag(idx)} className="ml-1 text-gray-500 hover:text-red-500">×</button>
+                                  <button type="button" onClick={() => removeTag(idx)} className="ml-2 text-gray-400 hover:text-red-500 font-bold">×</button>
                               </span>
                           ))}
                       </div>
@@ -561,23 +603,23 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                   {/* SEO */}
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                       <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">Search Engine Optimization</h3>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                           <div>
-                              <label className="block text-xs font-medium text-gray-700">Page Title</label>
-                              <input type="text" name="seoTitle" value={formData.seoTitle} onChange={handleChange} className="mt-1 w-full border p-2 rounded text-sm"/>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Page Title</label>
+                              <input type="text" name="seoTitle" value={formData.seoTitle} onChange={handleChange} className="w-full border border-gray-300 p-2 rounded text-sm"/>
                           </div>
                           <div>
-                              <label className="block text-xs font-medium text-gray-700">Meta Description</label>
-                              <textarea name="seoDescription" value={formData.seoDescription} onChange={handleChange} rows={3} className="mt-1 w-full border p-2 rounded text-sm"></textarea>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Meta Description</label>
+                              <textarea name="seoDescription" value={formData.seoDescription} onChange={handleChange} rows={3} className="w-full border border-gray-300 p-2 rounded text-sm"></textarea>
                           </div>
                           <div>
-                              <label className="block text-xs font-medium text-gray-700">Keywords</label>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Keywords</label>
                               <input 
                                 type="text" 
                                 value={seoKeywordInput} 
                                 onChange={(e) => setSeoKeywordInput(e.target.value)} 
                                 onKeyDown={handleSeoKeywordKeyDown}
-                                className="mt-1 w-full border p-2 rounded text-sm" 
+                                className="w-full border border-gray-300 p-2 rounded text-sm" 
                                 placeholder="Comma separated keywords"
                               />
                               <div className="flex flex-wrap gap-2 mt-2">
@@ -590,8 +632,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
                               </div>
                           </div>
                           <div>
-                              <label className="block text-xs font-medium text-gray-700">URL Slug</label>
-                              <input type="text" name="slug" value={formData.slug} onChange={handleChange} className="mt-1 w-full border p-2 rounded text-sm text-gray-500 bg-gray-50"/>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">URL Slug</label>
+                              <input type="text" name="slug" value={formData.slug} onChange={handleChange} className="w-full border border-gray-300 p-2 rounded text-sm text-gray-600 bg-gray-50"/>
                           </div>
                       </div>
                   </div>
@@ -602,12 +644,15 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, onSave, onCancel }) 
       {/* Manage Categories Modal */}
       {isManageCatsOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
-                <div className="flex justify-between items-center p-4 border-b bg-gray-50"><h3 className="font-bold">Manage Categories</h3><button onClick={() => setIsManageCatsOpen(false)}>×</button></div>
+            <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-fade-in-up">
+                <div className="flex justify-between items-center p-4 border-b bg-gray-50"><h3 className="font-bold text-gray-800">Manage Categories</h3><button onClick={() => setIsManageCatsOpen(false)} className="text-gray-500 hover:text-gray-700">×</button></div>
                 <div className="p-4 max-h-60 overflow-y-auto">
-                    <ul className="space-y-2">{categories.map(cat => <li key={cat.id} className="flex justify-between border-b pb-1"><span>{cat.name}</span><button onClick={() => handleDeleteCategory(cat.id)} className="text-red-500">Delete</button></li>)}</ul>
+                    <ul className="space-y-2">{categories.map(cat => <li key={cat.id} className="flex justify-between border-b pb-2 items-center"><span className="text-sm text-gray-700">{cat.name}</span><button onClick={() => handleDeleteCategory(cat.id)} className="text-red-500 text-xs hover:text-red-700">Delete</button></li>)}</ul>
                 </div>
-                <div className="p-4 border-t flex gap-2"><input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="flex-1 border p-2 rounded" placeholder="New Category"/><button onClick={handleAddCategory} className="bg-blue-600 text-white px-4 rounded">Add</button></div>
+                <div className="p-4 border-t flex gap-2 bg-gray-50">
+                    <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="flex-1 border border-gray-300 p-2 rounded text-sm focus:outline-none focus:border-blue-500" placeholder="New Category Name"/>
+                    <button onClick={handleAddCategory} className="bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-blue-700">Add</button>
+                </div>
             </div>
         </div>
       )}
