@@ -17,7 +17,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   
-  // Initialize form with user data if available, otherwise empty
   const [formData, setFormData] = useState({
     firstName: user?.name?.split(' ')[0] || '',
     lastName: user?.name?.split(' ')[1] || '',
@@ -31,7 +30,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
 
   useEffect(() => {
       if (cart.length > 0) {
-          // Meta Pixel: Initiate Checkout
           trackEvent('InitiateCheckout', {
               content_ids: cart.map(item => item.id),
               content_type: 'product',
@@ -52,7 +50,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
     setLoading(true);
 
     try {
-        // 1. Create Order on Backend (Get Order ID and Key)
         const orderResponse = await fetch('/api/orders/razorpay-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -69,7 +66,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
 
         const { order_id, amount, currency, key_id } = await orderResponse.json();
 
-        // 2. Options for Razorpay Modal
         const options = {
             key: key_id, 
             amount: amount,
@@ -79,14 +75,12 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             image: "https://cdn-icons-png.flaticon.com/512/4440/4440935.png", 
             order_id: order_id,
             handler: async function (response: any) {
-                // 3. Payment Success
-                // Meta Pixel: Track Purchase
                 trackEvent('Purchase', {
                     value: cartTotal,
                     currency: 'INR',
                     content_ids: cart.map(item => item.id),
                     content_type: 'product',
-                    order_id: order_id // Use Razorpay order ID for matching
+                    order_id: order_id
                 });
 
                 await verifyAndPlaceOrder({
@@ -108,7 +102,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             }
         };
 
-        // 4. Open Razorpay
         const rzp1 = new (window as any).Razorpay(options);
         rzp1.on('payment.failed', function (response: any){
             alert(`Payment Failed: ${response.error.description}`);
@@ -123,51 +116,9 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
     }
   };
 
-  // Fire-and-Forget Email Trigger
-  const sendConfirmationEmail = (orderData: any, orderId: string) => {
-      const subject = `Order Confirmed! #${orderId.substring(0,6).toUpperCase()}`;
-      const html = `
-        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
-            <h2 style="color: #E11D48;">Thank you for your purchase!</h2>
-            <p>Hi ${formData.firstName},</p>
-            <p>We have received your order. It is currently being processed.</p>
-            <p><strong>Order Total: Rs. ${orderData.total}</strong></p>
-            <p>Please find your invoice attached.</p>
-            <p>We will notify you once your items are shipped.</p>
-            <p>Best Regards,<br/>Ladies Smart Choice Team</p>
-        </div>
-      `;
-
-      // Prepare invoice data for PDF generation in Serverless Function
-      const invoiceData = {
-          orderId: orderId,
-          customerName: `${formData.firstName} ${formData.lastName}`,
-          address: `${formData.address}, ${formData.city}, ${formData.postalCode}`,
-          total: orderData.total,
-          items: orderData.items.map((item: any) => ({
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price
-          }))
-      };
-
-      // Fire fetch without awaiting
-      fetch('/api/send-email', {
-          method: 'POST',
-          keepalive: true,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-              to: formData.email,
-              subject: subject,
-              html: html,
-              invoiceData: invoiceData // Triggers PDF generation on backend
-          })
-      }).catch(e => console.error("Vercel Email Failed:", e));
-  };
-
   const verifyAndPlaceOrder = async (paymentInfo: any) => {
       const orderData = {
-        userId: user?.id, // Might be undefined if guest
+        userId: user?.id,
         customerName: `${formData.firstName} ${formData.lastName}`,
         customerEmail: formData.email,
         customerPhone: formData.phone,
@@ -179,11 +130,10 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
         },
         items: cart,
         total: cartTotal,
-        paymentInfo: paymentInfo // Send payment details for verification
+        paymentInfo: paymentInfo
       };
 
       try {
-        // 1. Save Order to DB (Railway)
         const response = await fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -197,12 +147,8 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
 
         const responseData = await response.json();
         
-        // 2. Trigger Email (Fast & Non-blocking) with Invoice Data
-        sendConfirmationEmail(orderData, responseData._id || responseData.id);
-
         clearCart();
         
-        // Success Feedback
         const successDiv = document.createElement('div');
         successDiv.innerHTML = `
             <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 10000;">
@@ -259,7 +205,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           
-          {/* Shipping Form */}
           <div className="order-2 lg:order-1">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Shipping Information</h2>
             <form id="checkout-form" onSubmit={handleRazorpayPayment} className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
@@ -304,7 +249,6 @@ const CheckoutPage: React.FC<CheckoutPageProps> = ({ user, logout }) => {
             </form>
           </div>
 
-          {/* Order Summary */}
           <div className="order-1 lg:order-2 bg-white p-6 rounded-lg shadow-md h-fit lg:sticky lg:top-24">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Order Summary</h2>
             <ul className="divide-y divide-gray-200 mb-4 max-h-64 overflow-y-auto">

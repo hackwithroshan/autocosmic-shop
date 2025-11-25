@@ -16,9 +16,8 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Forgot Password State
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
-  const [forgotStep, setForgotStep] = useState(1); // 1 = Email, 2 = OTP & New Password
+  const [forgotStep, setForgotStep] = useState(1); 
   const [forgotEmail, setForgotEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -45,7 +44,6 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
       } else {
-        // Fallback if backend crashes and returns HTML error page
         throw new Error(`Server Error: ${response.status}. The backend might be down.`);
       }
 
@@ -56,7 +54,6 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       setToken(data.token);
       setUser(data.user);
 
-      // Admin redirect logic
       if (data.user.isAdmin === true) {
         navigate('/admin');
       } else {
@@ -75,8 +72,6 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
     }
   };
 
-  // --- Forgot Password Handlers ---
-
   const handleSendOtp = async (e: React.FormEvent) => {
       e.preventDefault();
       setForgotLoading(true);
@@ -84,7 +79,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
       setForgotMessage('');
 
       try {
-          // 1. Ask backend to generate OTP
+          // Backend sends the email now
           const res = await fetch('/api/auth/forgot-password', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -93,29 +88,7 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
           
           const data = await res.json();
           
-          if (res.ok && data.otp) {
-              // 2. Send Email via Vercel (Frontend Logic)
-              // We use the OTP returned by the backend
-              await fetch('/api/send-email', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                      to: forgotEmail,
-                      subject: "Reset Your Password - OTP",
-                      html: `
-                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; max-width: 500px; margin: 0 auto;">
-                            <h2 style="color: #E11D48; text-align: center;">Password Reset Request</h2>
-                            <p>Hello,</p>
-                            <p>You requested to reset your password. Please use the following OTP (One-Time Password) to verify your identity.</p>
-                            <div style="background: #f0f0f0; text-align: center; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                                <span style="font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #333;">${data.otp}</span>
-                            </div>
-                            <p style="color: #666; font-size: 12px;">This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-                        </div>
-                      `
-                  })
-              });
-
+          if (res.ok) {
               setForgotStep(2);
               setForgotMessage(`An OTP has been sent to ${forgotEmail}.`);
           } else {
@@ -163,7 +136,6 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
 
   return (
     <div className="min-h-screen flex bg-white">
-      {/* Left Side - Visual */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gray-900">
         <img 
           src="https://images.unsplash.com/photo-1618932260643-030a8327707c?q=80&w=1920&auto=format&fit=crop" 
@@ -189,7 +161,6 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
         </div>
       </div>
 
-      {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-8 sm:p-12 lg:p-24 bg-white">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center lg:text-left">
@@ -285,7 +256,6 @@ const LoginPage: React.FC<LoginProps> = ({ setToken, setUser }) => {
         </div>
       </div>
 
-      {/* Forgot Password Modal */}
       {isForgotModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 backdrop-blur-sm">
               <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up">
