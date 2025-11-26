@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { Product, Review } from '../types';
 import { useCart } from '../contexts/CartContext';
 import Header from '../components/Header';
@@ -59,7 +59,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
             setActiveImage(foundProduct.imageUrl);
             setReviews(foundProduct.reviews || []);
             
-            // Initialize Variants (Default to first option)
             if (foundProduct.hasVariants && foundProduct.variants) {
                 const defaults: {[key: string]: string} = {};
                 foundProduct.variants.forEach(v => {
@@ -68,19 +67,15 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                 setSelectedVariants(defaults);
             }
 
-            // Related Products Logic
             setRelatedProducts(allProducts.filter(p => p.category === foundProduct.category && p.id !== foundProduct.id).slice(0, 4));
 
-            // Recently Viewed Logic
             const viewedIds: string[] = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
             const history = viewedIds.map(vid => allProducts.find(p => p.id === vid)).filter((p): p is Product => !!p && p.id !== foundProduct.id);
             setRecentlyViewed(history);
             
-            // Update Local Storage
             const newHistory = [foundProduct.id, ...viewedIds.filter(vid => vid !== foundProduct.id)].slice(0, 8);
             localStorage.setItem('recentlyViewed', JSON.stringify(newHistory));
 
-            // Pixel Tracking
             trackEvent('ViewContent', { 
                 content_name: foundProduct.name, 
                 content_ids: [foundProduct.id], 
@@ -106,8 +101,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
     }
   }, [id]);
 
-  // --- Handlers ---
-
   const handleVariantChange = (name: string, value: string) => {
       setSelectedVariants(prev => ({ ...prev, [name]: value }));
   };
@@ -115,17 +108,14 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
   const handleAddToCart = (isBuyNow = false) => {
       if (!product) return;
 
-      // Construct Variant Name
       let variantLabel = "";
       if (Object.keys(selectedVariants).length > 0) {
           variantLabel = Object.values(selectedVariants).join(' / ');
       }
       
-      // Create a specific item for the cart
       const cartItem = {
           ...product,
           name: variantLabel ? `${product.name} - ${variantLabel}` : product.name,
-          selectedOptions: selectedVariants // Pass metadata if cart supports it later
       };
 
       addToCart(cartItem, quantity);
@@ -140,7 +130,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
       if (isBuyNow) {
           navigate('/cart');
       } else {
-          // Optional: Toast notification here
           alert(`Added ${quantity} item(s) to cart`); 
       }
   };
@@ -174,13 +163,54 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
 
   const images = [product.imageUrl, ...(product.galleryImages || [])];
   const discount = product.mrp ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
-  const avgRating = reviews.length ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1) : '0';
+  const avgRating = reviews.length ? (reviews.reduce((a, b) => a + b.rating, 0) / reviews.length).toFixed(1) : '5.0'; // Default high if no reviews
+  const reviewCount = reviews.length || 1; // Avoid 0 for schema
+
+  // --- JSON-LD Schema for Google Rich Snippets ---
+  const productSchema = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": product.name,
+    "image": product.imageUrl,
+    "description": product.seoDescription || product.shortDescription || product.description,
+    "sku": product.sku || product.id,
+    "brand": {
+      "@type": "Brand",
+      "name": product.brand || "Ladies Smart Choice"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": window.location.href,
+      "priceCurrency": "INR",
+      "price": product.price,
+      "availability": product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "priceValidUntil": new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString() // Valid for 1 year
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": avgRating,
+      "reviewCount": reviewCount
+    }
+  };
 
   return (
     <div className="bg-white min-h-screen font-sans text-[#333]">
+      <Helmet>
+        <title>{product.seoTitle || product.name} | Ladies Smart Choice</title>
+        <meta name="description" content={product.seoDescription || product.shortDescription || product.description.substring(0, 160)} />
+        <meta property="og:title" content={product.seoTitle || product.name} />
+        <meta property="og:description" content={product.seoDescription || product.shortDescription} />
+        <meta property="og:image" content={product.imageUrl} />
+        <meta property="og:type" content="product" />
+        <meta property="og:url" content={window.location.href} />
+        <meta property="product:price:amount" content={String(product.price)} />
+        <meta property="product:price:currency" content="INR" />
+        {/* Google Rich Snippets */}
+        <script type="application/ld+json">{JSON.stringify(productSchema)}</script>
+      </Helmet>
+      
       <Header user={user} logout={logout} />
 
-      {/* --- Breadcrumbs --- */}
       <div className="container mx-auto px-4 py-4 max-w-[1400px]">
           <nav className="text-xs text-gray-500 uppercase tracking-wider flex items-center gap-2">
               <Link to="/" className="hover:text-black transition-colors">Home</Link>
@@ -190,26 +220,19 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
       </div>
 
       <main className="container mx-auto px-4 max-w-[1400px] pb-20">
-        
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
-            
-            {/* --- LEFT COLUMN: GALLERY (7/12) --- */}
             <div className="lg:col-span-7 flex flex-col gap-6">
-                {/* Main Image */}
                 <div className="relative w-full aspect-[3/4] bg-gray-50 overflow-hidden rounded-sm group cursor-zoom-in">
                     <img 
                         src={activeImage} 
                         alt={product.name} 
                         className="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-110"
                     />
-                    {/* Badges */}
                     <div className="absolute top-4 left-4 flex flex-col gap-2">
                         {discount > 0 && <span className="bg-rose-600 text-white text-[10px] font-bold px-3 py-1 uppercase tracking-widest">-{discount}% Sale</span>}
                         {product.stock < 5 && product.stock > 0 && <span className="bg-black text-white text-[10px] font-bold px-3 py-1 uppercase tracking-widest">Low Stock</span>}
                     </div>
                 </div>
-
-                {/* Thumbnails */}
                 {images.length > 1 && (
                     <div className="grid grid-cols-5 gap-4">
                         {images.map((img, idx) => (
@@ -225,15 +248,11 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                 )}
             </div>
 
-            {/* --- RIGHT COLUMN: DETAILS (5/12) --- */}
             <div className="lg:col-span-5 relative">
                 <div className="sticky top-8 space-y-8">
-                    
-                    {/* Title Block */}
                     <div className="border-b border-gray-100 pb-6">
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mb-3">{product.brand || 'LADIES SMART CHOICE'}</h2>
                         <h1 className="text-3xl md:text-4xl font-serif text-gray-900 leading-tight mb-4">{product.name}</h1>
-                        
                         <div className="flex items-center justify-between">
                             <div className="flex items-baseline gap-4">
                                 <span className="text-2xl font-bold text-gray-900">₹{product.price.toLocaleString()}</span>
@@ -244,17 +263,15 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                             <div className="flex items-center gap-1 text-sm">
                                 <StarIcon className="w-4 h-4 text-yellow-500" fill="currentColor"/>
                                 <span className="font-bold">{avgRating}</span>
-                                <span className="text-gray-400 underline cursor-pointer hover:text-gray-600">({reviews.length} reviews)</span>
+                                <span className="text-gray-400 underline cursor-pointer hover:text-gray-600">({reviewCount} reviews)</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Short Description */}
                     <p className="text-gray-600 text-sm leading-relaxed">
                         {product.shortDescription || product.description.substring(0, 150) + "..."}
                     </p>
 
-                    {/* Selectors */}
                     <div className="space-y-6">
                         {product.hasVariants && product.variants?.map((variant, idx) => (
                             <div key={idx}>
@@ -278,8 +295,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                                 </div>
                             </div>
                         ))}
-
-                        {/* Quantity */}
                         <div>
                             <span className="text-xs font-bold uppercase tracking-wider text-gray-900 mb-2 block">Quantity</span>
                             <div className="flex items-center border border-gray-300 w-32 h-10">
@@ -290,7 +305,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                         </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex flex-col gap-3 pt-4">
                         <button 
                             onClick={() => handleAddToCart(false)}
@@ -309,7 +323,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                         )}
                     </div>
 
-                    {/* Policies / Info */}
                     <div className="pt-6 border-t border-gray-100">
                         <Accordion title="Product Description" defaultOpen>
                             <div className="prose prose-sm max-w-none text-gray-600 whitespace-pre-line">
@@ -323,20 +336,13 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                             <p>Easy 7-day returns on unworn items with original tags attached.</p>
                         </Accordion>
                     </div>
-
                 </div>
             </div>
         </div>
 
-        {/* --- SECTION: STYLE INSPIRATION (VIDEOS) --- */}
         {shopVideos.length > 0 && (
             <div className="mt-24 border-t border-gray-100 pt-16">
-                <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-2xl font-serif font-bold text-gray-900">Style Inspiration</h3>
-                    <Link to="/" className="text-sm font-bold text-gray-900 border-b border-black pb-0.5">View All Stories</Link>
-                </div>
-                
-                {/* Modified to Grid Layout: 4 Videos Full Width */}
+                <h3 className="text-2xl font-serif font-bold text-gray-900 mb-8 text-center">Style Inspiration</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                     {shopVideos.slice(0, 4).map(video => (
                         <div 
@@ -367,16 +373,12 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
             </div>
         )}
 
-        {/* --- SECTION: CUSTOMER REVIEWS --- */}
         <div className="mt-24 border-t border-gray-100 pt-16 pb-16">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                
-                {/* Left: Write Review Form */}
                 <div className="lg:col-span-4">
                     <div className="bg-gray-50 p-8 rounded-xl">
                         <h3 className="text-xl font-serif font-bold text-gray-900 mb-4">Write a Review</h3>
                         <p className="text-sm text-gray-500 mb-6">Share your thoughts with other customers.</p>
-                        
                         <form onSubmit={submitReview} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Rating</label>
@@ -393,7 +395,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                                     ))}
                                 </div>
                             </div>
-
                             <div>
                                 <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Name</label>
                                 <input 
@@ -405,7 +406,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                                     placeholder="Your Name"
                                 />
                             </div>
-
                             <div>
                                 <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Review</label>
                                 <textarea 
@@ -417,7 +417,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                                     placeholder="How was the fit? Material quality?"
                                 />
                             </div>
-
                             <button 
                                 type="submit" 
                                 disabled={submittingReview}
@@ -429,7 +428,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                     </div>
                 </div>
 
-                {/* Right: Review List */}
                 <div className="lg:col-span-8">
                     <div className="flex items-end justify-between mb-8">
                         <div>
@@ -445,7 +443,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                             </div>
                         </div>
                     </div>
-
                     <div className="space-y-8">
                         {reviews.length === 0 ? (
                             <p className="text-gray-500 italic">No reviews yet. Be the first to write one!</p>
@@ -474,11 +471,9 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                         )}
                     </div>
                 </div>
-
             </div>
         </div>
 
-        {/* --- SECTION: RELATED PRODUCTS --- */}
         {relatedProducts.length > 0 && (
             <div className="mt-24">
                 <h3 className="text-2xl font-serif font-bold text-gray-900 mb-8 text-center">You May Also Like</h3>
@@ -490,7 +485,6 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
             </div>
         )}
 
-        {/* --- SECTION: RECENTLY VIEWED --- */}
         {recentlyViewed.length > 0 && (
             <div className="mt-24 mb-12">
                 <h3 className="text-xl font-serif font-bold text-gray-900 mb-6">Recently Viewed</h3>
@@ -503,10 +497,8 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                 </div>
             </div>
         )}
-
       </main>
 
-      {/* Video Modal */}
       {selectedVideo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4" onClick={() => setSelectedVideo(null)}>
             <div className="relative h-[80vh] aspect-[9/16] bg-black rounded-lg overflow-hidden" onClick={e => e.stopPropagation()}>

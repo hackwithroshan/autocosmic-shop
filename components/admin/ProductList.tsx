@@ -260,8 +260,8 @@ const ProductList: React.FC<{token: string | null}> = ({token}) => {
       </div>
       
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl h-[90vh] overflow-hidden z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[60] flex justify-center items-center p-0 md:p-4 backdrop-blur-sm">
+          <div className="bg-white md:rounded-lg shadow-xl w-full h-full md:h-[95vh] overflow-hidden z-50 flex flex-col">
             <ProductForm
               product={editingProduct}
               onSave={handleSave}

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import HomePage from './pages/HomePage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import LoginPage from './pages/LoginPage';
@@ -14,32 +15,44 @@ import CollectionPage from './pages/CollectionPage';
 import { CartProvider } from './contexts/CartContext';
 import { initFacebookPixel, trackEvent } from './utils/metaPixel';
 
-// Component to handle route changes for Pixel
+// Component to handle Pixel initialization and route changes
 const PixelTracker: React.FC = () => {
   const location = useLocation();
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // 1. Initialize Pixel ONCE on first load
   useEffect(() => {
-    // Initialize Pixel on first load
+    if (isInitialized) return;
+
     const initPixel = async () => {
       try {
+        console.log(" M-Pixel: Fetching Pixel ID from settings...");
         const res = await fetch('/api/settings/site');
         if (res.ok) {
           const settings = await res.json();
           if (settings.facebookPixelId) {
             initFacebookPixel(settings.facebookPixelId);
+            setIsInitialized(true);
+          } else {
+             console.error("❌ M-Pixel: 'facebookPixelId' not found in site settings from API.");
           }
+        } else {
+           console.error("❌ M-Pixel: Failed to fetch site settings from API.");
         }
       } catch (e) {
-        console.error("Failed to init pixel", e);
+        console.error("❌ M-Pixel: Network error while fetching settings.", e);
       }
     };
     initPixel();
-  }, []);
+  }, [isInitialized]);
 
+  // 2. Track PageView on subsequent route changes
   useEffect(() => {
-    // Track PageView on route change
-    trackEvent('PageView');
-  }, [location]);
+    // Only track if initialized and it's not the initial page load (init handles that)
+    if (isInitialized) {
+      trackEvent('PageView');
+    }
+  }, [location, isInitialized]);
 
   return null;
 };
@@ -65,47 +78,49 @@ const App: React.FC = () => {
   };
 
   return (
-    <CartProvider>
-      <Router>
-        <PixelTracker />
-        <div className="min-h-screen bg-gray-50">
-          <Routes>
-            <Route path="/" element={<HomePage user={user} logout={handleLogout} />} />
-            <Route 
-              path="/login" 
-              element={!user ? <LoginPage setToken={setToken} setUser={setUser} /> : <Navigate to="/" />} 
-            />
-            <Route 
-              path="/register" 
-              element={!user ? <RegisterPage setToken={setToken} setUser={setUser} /> : <Navigate to="/" />} 
-            />
-            <Route 
-              path="/admin/*" 
-              element={user?.isAdmin ? <AdminDashboardPage user={user} logout={handleLogout} /> : <Navigate to="/" />} 
-            />
-            <Route 
-              path="/dashboard" 
-              element={user ? <UserDashboardPage user={user} logout={handleLogout} /> : <Navigate to="/login" />} 
-            />
-            <Route 
-              path="/product/:id" 
-              element={<ProductDetailsPage user={user} logout={handleLogout} />} 
-            />
-            <Route 
-              path="/collections/:id" 
-              element={<CollectionPage user={user} logout={handleLogout} />} 
-            />
-            <Route path="/pages/:slug" element={<DynamicPage user={user} logout={handleLogout} />} />
-            <Route path="/cart" element={<CartPage user={user} logout={handleLogout} />} />
-            <Route 
-              path="/checkout" 
-              element={<CheckoutPage user={user} logout={handleLogout} />} 
-            />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </div>
-      </Router>
-    </CartProvider>
+    <HelmetProvider>
+      <CartProvider>
+        <Router>
+          <PixelTracker />
+          <div className="min-h-screen bg-gray-50">
+            <Routes>
+              <Route path="/" element={<HomePage user={user} logout={handleLogout} />} />
+              <Route 
+                path="/login" 
+                element={!user ? <LoginPage setToken={setToken} setUser={setUser} /> : <Navigate to="/" />} 
+              />
+              <Route 
+                path="/register" 
+                element={!user ? <RegisterPage setToken={setToken} setUser={setUser} /> : <Navigate to="/" />} 
+              />
+              <Route 
+                path="/admin/*" 
+                element={user?.isAdmin ? <AdminDashboardPage user={user} logout={handleLogout} /> : <Navigate to="/" />} 
+              />
+              <Route 
+                path="/dashboard" 
+                element={user ? <UserDashboardPage user={user} logout={handleLogout} /> : <Navigate to="/login" />} 
+              />
+              <Route 
+                path="/product/:id" 
+                element={<ProductDetailsPage user={user} logout={handleLogout} />} 
+              />
+              <Route 
+                path="/collections/:id" 
+                element={<CollectionPage user={user} logout={handleLogout} />} 
+              />
+              <Route path="/pages/:slug" element={<DynamicPage user={user} logout={handleLogout} />} />
+              <Route path="/cart" element={<CartPage user={user} logout={handleLogout} />} />
+              <Route 
+                path="/checkout" 
+                element={<CheckoutPage user={user} logout={handleLogout} />} 
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </div>
+        </Router>
+      </CartProvider>
+    </HelmetProvider>
   );
 };
 

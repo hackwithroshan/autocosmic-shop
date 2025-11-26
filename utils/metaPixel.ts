@@ -1,4 +1,3 @@
-
 // Standard Facebook Pixel Type Definition
 declare global {
   interface Window {
@@ -8,10 +7,17 @@ declare global {
 }
 
 export const initFacebookPixel = (pixelId: string) => {
-  if (!pixelId) return;
+  // 1. Safety Check: If Pixel ID is missing, do nothing and log an error.
+  if (!pixelId) {
+    console.error("❌ Meta Pixel Error: Pixel ID is missing. Please add it in Admin > Settings > Tracking Pixels.");
+    return;
+  }
   
-  // Prevent double initialization
-  if (window.fbq) return;
+  // 2. Prevent double initialization
+  if (window.fbq) {
+    console.warn("ℹ️ Meta Pixel already initialized.");
+    return;
+  }
 
   /* eslint-disable */
   (function(f:any,b:any,e:any,v:any,n?:any,t?:any,s?:any)
@@ -24,18 +30,28 @@ export const initFacebookPixel = (pixelId: string) => {
   'https://connect.facebook.net/en_US/fbevents.js');
   /* eslint-enable */
 
+  // 3. Initialize and track the first PageView immediately (Critical Fix)
   window.fbq('init', pixelId);
   window.fbq('track', 'PageView');
+  
+  console.log(`✅ Meta Pixel Initialized with ID: ${pixelId}`);
 };
 
 export const trackEvent = (event: string, data?: any) => {
-  if (window.fbq) {
-    window.fbq('track', event, data);
+  if (!window.fbq) {
+    // This can happen if init failed (e.g., ad blocker)
+    console.warn(` M-Pixel event "${event}" was not sent. Is an ad blocker active?`);
+    return;
   }
+  window.fbq('track', event, data);
+  console.log(` M-Pixel Event Sent: "${event}"`, data || '');
 };
 
 export const trackCustomEvent = (event: string, data?: any) => {
-  if (window.fbq) {
-    window.fbq('trackCustom', event, data);
+  if (!window.fbq) {
+    console.warn(` M-Pixel custom event "${event}" was not sent. Is an ad blocker active?`);
+    return;
   }
+  window.fbq('trackCustom', event, data);
+  console.log(` M-Pixel Custom Event Sent: "${event}"`, data || '');
 };
