@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { FooterSettings, FooterColumn, FooterLink, SocialLink, Product, BlogPost, ContentPage } from '../../types';
 import { COLORS } from '../../constants';
@@ -138,7 +137,7 @@ const LinkPicker: React.FC<LinkPickerProps> = ({ value, onChange, data, classNam
                         <div 
                             key={item.id || item._id} 
                             className={itemClass}
-                            onClick={() => handleSelect(`${linkPrefix}${item.slug || item.id}`)}
+                            onClick={() => handleSelect(`${linkPrefix}${item.slug}`)}
                         >
                             <span className="truncate pr-2">{item[nameKey]}</span>
                         </div>

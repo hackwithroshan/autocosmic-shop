@@ -16,6 +16,20 @@ router.get('/', async (req, res) => {
   }
 });
 
+// --- NEW: Get single product by SLUG ---
+router.get('/slug/:slug', async (req, res) => {
+  try {
+    const product = await Product.findOne({ slug: req.params.slug });
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    res.json(product);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 // Get all categories
 router.get('/categories', async (req, res) => {
   try {
@@ -109,7 +123,7 @@ router.put('/:id', authMiddleware(true), async (req, res) => {
 router.delete('/:id', authMiddleware(true), async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+    if (!product) return res.status(404).json({ message: 'Product removed' });
     res.json({ message: 'Product removed' });
   } catch (err) {
     console.error(err.message);

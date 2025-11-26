@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product } from '../types';
 import { COLORS } from '../constants';
@@ -6,7 +5,7 @@ import { useCart } from '../contexts/CartContext';
 
 interface ProductCardProps {
   product: Product;
-  onProductClick?: (id: string) => void;
+  onProductClick?: (slug: string) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onProductClick }) => {
@@ -24,7 +23,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onProductClick }) =>
   return (
     <div 
       className="group relative bg-white border border-gray-100 rounded-lg shadow-sm overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 cursor-pointer flex flex-col h-full"
-      onClick={() => onProductClick && onProductClick(product.id)}
+      onClick={() => onProductClick && product.slug && onProductClick(product.slug)}
     >
       <div className="aspect-[3/4] w-full overflow-hidden relative">
         <img

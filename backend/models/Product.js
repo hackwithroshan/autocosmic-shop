@@ -23,7 +23,7 @@ const ReviewSchema = new mongoose.Schema({
 const ProductSchema = new mongoose.Schema({
   // Basic
   name: { type: String, required: true },
-  slug: { type: String },
+  slug: { type: String, unique: true, index: true },
   description: { type: String, required: true },
   shortDescription: { type: String },
   brand: { type: String },
@@ -77,6 +77,27 @@ const ProductSchema = new mongoose.Schema({
   reviews: [ReviewSchema],
 
   createdAt: { type: Date, default: Date.now }
+});
+
+// Pre-save hook to generate slug automatically
+ProductSchema.pre('save', async function(next) {
+  if (this.isModified('name') || !this.slug) {
+    let slug = this.name.toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+
+    // Ensure slug is unique
+    let existingProduct = await mongoose.model('Product').findOne({ slug: slug, _id: { $ne: this._id } });
+    let count = 0;
+    while (existingProduct) {
+      count++;
+      slug = `${slug}-${count}`;
+      existingProduct = await mongoose.model('Product').findOne({ slug: slug, _id: { $ne: this._id } });
+    }
+    this.slug = slug;
+  }
+  next();
 });
 
 // To use the 'id' virtual field provided by Mongoose instead of '_id'

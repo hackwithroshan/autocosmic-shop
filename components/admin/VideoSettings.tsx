@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { COLORS } from '../../constants';
 import MediaPicker from './MediaPicker';
@@ -6,7 +5,7 @@ import { Product } from '../../types';
 
 interface VideoTarget {
     type: 'product' | 'category' | 'custom';
-    id: string;
+    id: string; // Product Slug, Collection ID, or URL path
     name: string;
 }
 
@@ -391,7 +390,7 @@ const VideoSettings: React.FC<{ token: string | null }> = ({ token }) => {
                                                         {linkSearch && (
                                                             <div className="absolute z-10 w-full bg-white border shadow-lg mt-1 rounded-md max-h-48 overflow-y-auto">
                                                                 {getFilteredItems().map((item: any) => (
-                                                                    <div key={item.id} onClick={() => addTarget({ type: targetType, id: item.id, name: item.name || item.title })} className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b">{item.name || item.title}</div>
+                                                                    <div key={item.id} onClick={() => addTarget({ type: targetType, id: item.slug || item.id, name: item.name || item.title })} className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b">{item.name || item.title}</div>
                                                                 ))}
                                                             </div>
                                                         )}

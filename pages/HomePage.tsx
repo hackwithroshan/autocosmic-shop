@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
@@ -92,7 +91,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
 
   const prevSlide = () => {
     if (slides.length === 0) return;
-    setCurrentSlide(currentSlide === 0 ? slides.length - 1 : currentSlide - 1);
+    setCurrentSlide(currentSlide === 0 ? slides.length - 1 : currentSlide + 1);
   };
 
   const nextSlide = () => {
@@ -138,17 +137,15 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
     fetchData();
   }, []);
 
-  const handleProductClick = (id: string) => {
-    navigate(`/product/${id}`);
+  const handleProductClick = (slug: string) => {
+    navigate(`/product/${slug}`);
   };
 
   const handleVideoShop = (link?: string) => {
       if (!link) return;
-      // If link starts with http, open in new tab, else navigate
       if (link.startsWith('http')) {
           window.open(link, '_blank');
       } else {
-          // Check if it's just an ID or a path
           const target = link.startsWith('/') ? link : `/product/${link}`;
           navigate(target);
       }
@@ -163,7 +160,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
       <Header user={user} logout={logout} />
       <main className="flex-grow">
         
-        {/* 1. HERO SECTION SLIDER */}
+        {/* HERO SECTION SLIDER */}
         <div className="relative bg-gray-800 h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden">
           {slides.length > 0 ? slides.map((slide, index) => (
             <div
@@ -204,7 +201,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
           </>}
         </div>
 
-        {/* 2. COLLECTIONS (Dynamic Shop By Category) */}
+        {/* COLLECTIONS (Dynamic Shop By Category) */}
         <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl font-serif font-bold text-gray-900 text-center mb-8">Curated Collections</h2>
             {collections.length > 0 ? (
@@ -229,7 +226,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
             )}
         </div>
 
-        {/* 3. NEW ARRIVALS */}
+        {/* NEW ARRIVALS */}
         <div className="bg-gray-50 py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-end mb-8">
@@ -250,7 +247,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
           </div>
         </div>
 
-        {/* 4. SHOP FROM VIDEO */}
+        {/* SHOP FROM VIDEO */}
         {videos.length > 0 && (
             <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
                 <h2 className="text-3xl font-serif font-bold text-gray-900 text-center mb-10">Shop From Video</h2>
@@ -267,7 +264,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
             </div>
         )}
 
-        {/* 5. BEST SELLERS */}
+        {/* BEST SELLERS */}
         <div className="bg-white py-16 border-t border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -284,7 +281,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
           </div>
         </div>
 
-        {/* 6. HAPPY CUSTOMERS */}
+        {/* HAPPY CUSTOMERS */}
         {testimonials.length > 0 && (
             <div className="bg-rose-50 py-16">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -308,7 +305,7 @@ const HomePage: React.FC<HomePageProps> = ({ user, logout }) => {
             </div>
         )}
 
-        {/* 7. NEWSLETTER */}
+        {/* NEWSLETTER */}
         <div className="bg-gray-900 py-20">
             <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
                 <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white mb-6">Join the Smart Choice Club</h2>

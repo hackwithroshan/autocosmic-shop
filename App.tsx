@@ -102,7 +102,7 @@ const App: React.FC = () => {
                 element={user ? <UserDashboardPage user={user} logout={handleLogout} /> : <Navigate to="/login" />} 
               />
               <Route 
-                path="/product/:id" 
+                path="/product/:slug" 
                 element={<ProductDetailsPage user={user} logout={handleLogout} />} 
               />
               <Route 

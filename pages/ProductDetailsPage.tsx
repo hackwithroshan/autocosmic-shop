@@ -20,7 +20,7 @@ interface ShopVideo {
 }
 
 const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user, logout }) => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
 
@@ -45,14 +45,21 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
   // --- Fetch Data ---
   useEffect(() => {
     const fetchData = async () => {
+      if (!slug) return;
+      setLoading(true);
       try {
-        const [productsRes, videosRes] = await Promise.all([
-            fetch(`/api/products`),
+        const [productRes, allProductsRes, videosRes] = await Promise.all([
+            fetch(`/api/products/slug/${slug}`),
+            fetch('/api/products'),
             fetch('/api/content/videos')
         ]);
+
+        if (!productRes.ok) {
+            throw new Error("Product not found");
+        }
         
-        const allProducts: Product[] = await productsRes.json();
-        const foundProduct = allProducts.find((p: Product) => p.id === id);
+        const foundProduct: Product = await productRes.json();
+        const allProducts: Product[] = await allProductsRes.json();
         
         if (foundProduct) {
             setProduct(foundProduct);
@@ -95,11 +102,9 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
       }
     };
     
-    if (id) {
-        fetchData();
-        window.scrollTo(0, 0);
-    }
-  }, [id]);
+    fetchData();
+    window.scrollTo(0, 0);
+  }, [slug]);
 
   const handleVariantChange = (name: string, value: string) => {
       setSelectedVariants(prev => ({ ...prev, [name]: value }));
@@ -479,7 +484,7 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                 <h3 className="text-2xl font-serif font-bold text-gray-900 mb-8 text-center">You May Also Like</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10">
                     {relatedProducts.map(p => (
-                        <ProductCard key={p.id} product={p} onProductClick={(pid) => navigate(`/product/${pid}`)} />
+                        <ProductCard key={p.id} product={p} onProductClick={(slug) => navigate(`/product/${slug}`)} />
                     ))}
                 </div>
             </div>
@@ -491,7 +496,7 @@ const ProductDetailsPage: React.FC<{ user: any; logout: () => void }> = ({ user,
                 <div className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide">
                     {recentlyViewed.map(p => (
                         <div key={p.id} className="min-w-[200px] w-[200px]">
-                            <ProductCard product={p} onProductClick={(pid) => navigate(`/product/${pid}`)} />
+                            <ProductCard product={p} onProductClick={(slug) => navigate(`/product/${slug}`)} />
                         </div>
                     ))}
                 </div>

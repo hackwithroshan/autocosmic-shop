@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
@@ -65,7 +64,7 @@ const CollectionPage: React.FC<{ user: any; logout: () => void }> = ({ user, log
                             <ProductCard 
                                 key={product.id} 
                                 product={product} 
-                                onProductClick={(pid) => navigate(`/product/${pid}`)} 
+                                onProductClick={(slug) => navigate(`/product/${slug}`)} 
                             />
                         ))}
                     </div>
